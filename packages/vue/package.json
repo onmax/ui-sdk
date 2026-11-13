@@ -32,7 +32,6 @@
     ".": "./src/index.ts",
     "./accordion": "./src/accordion.ts",
     "./alert-dialog": "./src/alert-dialog.ts",
-    "./aspect-ratio": "./src/aspect-ratio.ts",
     "./async-options": "./src/async-options.ts",
     "./autocomplete": "./src/autocomplete.ts",
     "./avatar": "./src/avatar.ts",
@@ -103,7 +102,6 @@
     "./toolbar": "./src/toolbar.ts",
     "./tooltip": "./src/tooltip.ts",
     "./trigger-menu": "./src/trigger-menu.ts",
-    "./visually-hidden": "./src/visually-hidden.ts",
     "./waterfall": "./src/waterfall.ts",
     "./nuxt": "./nuxt/module.ts"
   },
@@ -127,10 +125,6 @@
       "./alert-dialog": {
         "types": "./dist/alert-dialog.d.ts",
         "default": "./dist/alert-dialog.js"
-      },
-      "./aspect-ratio": {
-        "types": "./dist/aspect-ratio.d.ts",
-        "default": "./dist/aspect-ratio.js"
       },
       "./async-options": {
         "types": "./dist/async-options.d.ts",
@@ -411,10 +405,6 @@
       "./trigger-menu": {
         "types": "./dist/trigger-menu.d.ts",
         "default": "./dist/trigger-menu.js"
-      },
-      "./visually-hidden": {
-        "types": "./dist/visually-hidden.d.ts",
-        "default": "./dist/visually-hidden.js"
       },
       "./waterfall": {
         "types": "./dist/waterfall.d.ts",
