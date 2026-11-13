@@ -103,6 +103,10 @@
     "./observe": "./src/page/observe/observe.ts",
     "./history": "./src/page/history/history.ts",
     "./gesture": "./src/foundation/motion/gesture.ts",
+    "./form": "./src/components/form/form.ts",
+    "./editable": "./src/components/editable/editable.ts",
+    "./tags-input": "./src/components/tags-input/tags-input.ts",
+    "./tag-group": "./src/components/tag-group/tag-group.ts",
     "./renderer": "./src/renderer.ts",
     "./testing": "./src/testing.ts",
     "./internal/*": "./src/*.ts",
@@ -405,6 +409,22 @@
       "./gesture": {
         "types": "./dist/foundation/motion/gesture.d.ts",
         "default": "./dist/foundation/motion/gesture.js"
+      },
+      "./form": {
+        "types": "./dist/components/form/form.d.ts",
+        "default": "./dist/components/form/form.js"
+      },
+      "./editable": {
+        "types": "./dist/components/editable/editable.d.ts",
+        "default": "./dist/components/editable/editable.js"
+      },
+      "./tags-input": {
+        "types": "./dist/components/tags-input/tags-input.d.ts",
+        "default": "./dist/components/tags-input/tags-input.js"
+      },
+      "./tag-group": {
+        "types": "./dist/components/tag-group/tag-group.d.ts",
+        "default": "./dist/components/tag-group/tag-group.js"
       },
       "./renderer": {
         "types": "./dist/renderer.d.ts",

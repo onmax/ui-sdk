@@ -49,8 +49,10 @@
     "./date-input": "./src/date-input.ts",
     "./dialog": "./src/dialog.ts",
     "./drawer": "./src/drawer.ts",
+    "./editable": "./src/editable.ts",
     "./field": "./src/field.ts",
     "./file-input": "./src/file-input.ts",
+    "./form": "./src/form.ts",
     "./gesture": "./src/gesture.ts",
     "./hover-card": "./src/hover-card.ts",
     "./image": "./src/image.ts",
@@ -58,6 +60,8 @@
     "./input": "./src/input.ts",
     "./label": "./src/label.ts",
     "./listbox": "./src/listbox.ts",
+    "./tag-group": "./src/tag-group.ts",
+    "./tags-input": "./src/tags-input.ts",
     "./tree": "./src/tree.ts",
     "./menu": "./src/menu.ts",
     "./menubar": "./src/menubar.ts",
@@ -189,6 +193,10 @@
         "types": "./dist/drawer.d.ts",
         "default": "./dist/drawer.js"
       },
+      "./editable": {
+        "types": "./dist/editable.d.ts",
+        "default": "./dist/editable.js"
+      },
       "./field": {
         "types": "./dist/field.d.ts",
         "default": "./dist/field.js"
@@ -196,6 +204,10 @@
       "./file-input": {
         "types": "./dist/file-input.d.ts",
         "default": "./dist/file-input.js"
+      },
+      "./form": {
+        "types": "./dist/form.d.ts",
+        "default": "./dist/form.js"
       },
       "./gesture": {
         "types": "./dist/gesture.d.ts",
@@ -224,6 +236,14 @@
       "./listbox": {
         "types": "./dist/listbox.d.ts",
         "default": "./dist/listbox.js"
+      },
+      "./tag-group": {
+        "types": "./dist/tag-group.d.ts",
+        "default": "./dist/tag-group.js"
+      },
+      "./tags-input": {
+        "types": "./dist/tags-input.d.ts",
+        "default": "./dist/tags-input.js"
       },
       "./tree": {
         "types": "./dist/tree.d.ts",
