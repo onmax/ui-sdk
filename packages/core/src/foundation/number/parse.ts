@@ -39,11 +39,10 @@ function symbolsOf(
   }
   const formatter = numberFormatter(locale, options)
   const parts = [
-    ...formatter.formatToParts(-12345.6),
-    ...formatter.formatToParts(12345.6),
-    // Long currency names differ between one and many.
-    ...formatter.formatToParts(1),
-  ]
+    -12345.6,
+    12345.6,
+    ...pluralSamples(locale, formatter),
+  ].flatMap((sample) => formatter.formatToParts(sample))
   const find = (type: string) => parts.find((part) => part.type === type)?.value
   // Formats that show no decimals or no grouping, like percents, yen or
   // `useGrouping: false`, still read the locale's own separators.
@@ -80,6 +79,30 @@ function symbolsOf(
   }
   symbolCache.set(key, symbols)
   return symbols
+}
+
+// Every plural form a locale has shows up in 0 to 110, a fraction or a million.
+const pluralCandidates = [...Array(111).keys(), 0.5, 1.5, 1e6]
+
+// One number of each plural form the formatter writes, since long currency and
+// unit names change with the number: "2 километра" and "5 километров".
+function pluralSamples(
+  locale: string | undefined,
+  formatter: Intl.NumberFormat
+) {
+  const rules = new Intl.PluralRules(locale, formatter.resolvedOptions())
+  const forms = rules.resolvedOptions().pluralCategories.length
+  const samples = new Map<string, number>()
+  for (const candidate of pluralCandidates) {
+    const form = rules.select(candidate)
+    if (!samples.has(form)) {
+      samples.set(form, candidate)
+    }
+    if (samples.size === forms) {
+      break
+    }
+  }
+  return samples.values()
 }
 
 // Accounting formats wrap negatives in parentheses, like ($1,234.56).

@@ -183,6 +183,24 @@ describe("parsing", () => {
     ).toBe(5)
   })
 
+  test("reads every plural form of a long unit or currency name", () => {
+    const kilometers = {
+      style: "unit",
+      unit: "kilometer",
+      unitDisplay: "long",
+    } as const
+    const euros = {
+      style: "currency",
+      currency: "EUR",
+      currencyDisplay: "name",
+    } as const
+    expect(parseNumber("2 километра", "ru-RU", kilometers)).toBe(2)
+    expect(parseNumber("50 километров", "ru-RU", kilometers)).toBe(50)
+    expect(parseNumber("2 kilometry", "pl-PL", kilometers)).toBe(2)
+    expect(parseNumber("2,00 eurai", "lt-LT", euros)).toBe(2)
+    expect(isPartialNumber("50 километров", "ru-RU", kilometers)).toBe(true)
+  })
+
   test("accepts what could still become a number", () => {
     expect(isPartialNumber("-", "en-US", undefined)).toBe(true)
     expect(isPartialNumber("1.", "en-US", undefined)).toBe(true)
