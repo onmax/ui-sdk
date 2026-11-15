@@ -4,6 +4,7 @@
 import { afterEach, describe, expect, test } from "vitest"
 import { accordion } from "../src/components/accordion/accordion"
 import { checkbox } from "../src/components/checkbox/checkbox"
+import { checkboxGroup } from "../src/components/checkbox/checkbox-group"
 import { collapsible } from "../src/components/collapsible/collapsible"
 import { combobox } from "../src/components/combobox/combobox"
 import { alertDialog } from "../src/components/dialog/alert-dialog"
@@ -151,6 +152,35 @@ describe("our primitives pass", () => {
     )
     await checkPattern(radioView.root, "radio-group")
     expect(radioView.state.value).toBe("m")
+  })
+
+  test("a required radio group with its native inputs", async () => {
+    const radioView = view(
+      mount(
+        radioGroup,
+        { defaultValue: "m", required: true },
+        `<group aria-label="Size">
+          <label><root value="s"></root><input value="s">Small</label>
+          <label><root value="m"></root><input value="m">Medium</label>
+        </group>`
+      )
+    )
+    await checkPattern(radioView.root, "radio-group")
+    expect(radioView.state.value).toBe("m")
+  })
+
+  test("a checkbox in a required checkbox group with its native input", async () => {
+    const groupView = view(
+      mount(
+        checkboxGroup,
+        { required: true },
+        `<group aria-label="Toppings">
+          <label><input type="checkbox" value="cheese"> Cheese</label>
+          <group-input></group-input>
+        </group>`
+      )
+    )
+    await checkPattern(groupView.root, "checkbox")
   })
 
   test("toolbar", async () => {
