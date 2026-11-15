@@ -131,7 +131,7 @@ function parseDate(
   const numbers: string[] = []
   for (const token of normalized
     .toLocaleLowerCase(locale)
-    .match(/\p{N}+|\p{L}+/gu) ?? []) {
+    .match(/\p{N}+|[\p{L}\p{M}]+/gu) ?? []) {
     if (/^\d+$/.test(token)) {
       numbers.push(token)
       continue
@@ -287,7 +287,7 @@ function isPatternWord(word: string, locale: string | undefined) {
         if (part.type === "literal") {
           for (const literal of part.value
             .toLocaleLowerCase(locale)
-            .match(/\p{L}+/gu) ?? []) {
+            .match(/[\p{L}\p{M}]+/gu) ?? []) {
             words.add(literal)
           }
         }

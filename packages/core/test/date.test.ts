@@ -372,6 +372,13 @@ describe("typing a date", () => {
     )
   })
 
+  test("reads month names whose letters carry combining marks", () => {
+    expect(parseDate("16 ตุลาคม 2569", "th-TH")).toBe("2026-10-16")
+    expect(parseDate("16 अक्टूबर 2026", "hi-IN")).toBe("2026-10-16")
+    expect(parseDate("16 அக்டோபர், 2026", "ta-IN")).toBe("2026-10-16")
+    expect(parseDate("১৬ অক্টোবর, ২০২৬", "bn-BD")).toBe("2026-10-16")
+  })
+
   test("reads a pasted label with its weekday", () => {
     expect(parseDate("Friday, October 16, 2026", "en-US")).toBe("2026-10-16")
   })
