@@ -701,6 +701,30 @@ test("a native radio group passes when styles hide its first radio, which Tab sk
   await expect(checkPattern(root, "radio-group")).resolves.toBeUndefined()
 })
 
+test("a native radio group passes, its arrows checking the next radio as a browser's do", async () => {
+  const root = render(`
+    <div role="radiogroup" aria-label="Size">
+      <label><input type="radio" name="size" value="s" checked>Small</label>
+      <label><input type="radio" name="size" value="m">Medium</label>
+      <label><input type="radio" name="size" value="l">Large</label>
+    </div>`)
+  await expect(checkPattern(root, "radio-group")).resolves.toBeUndefined()
+})
+
+test("a native range input passes as a slider, its keys stepping the value as a browser's do", async () => {
+  const root = render(
+    `<div><label>Volume <input type="range" min="0" max="10" value="5"></label></div>`
+  )
+  await expect(checkPattern(root, "slider")).resolves.toBeUndefined()
+})
+
+test("a native range input passes as a slider right to left", async () => {
+  const root = render(
+    `<div dir="rtl"><label>Volume <input type="range" min="0" max="10" value="5"></label></div>`
+  )
+  await expect(checkPattern(root, "slider")).resolves.toBeUndefined()
+})
+
 test("a hand-made listbox passes when the slot it renders an option in is hidden", async () => {
   const root = render(`<div role="listbox" aria-label="Fruit">
     <div role="option" aria-selected="true" tabindex="0">Apple</div>

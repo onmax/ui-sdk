@@ -4,6 +4,7 @@
 // layout, so Tab follows tab order here and parts have boxes (`mount.ts`).
 import { dragThreshold } from "../foundation/drag-and-drop/pointer"
 import { trustSent } from "../foundation/kernel/trusted"
+import { isRtl } from "./aria"
 
 // The events this file sends, which core treats as a person's.
 const sent = new WeakSet<Event>()
@@ -176,6 +177,77 @@ const activates = (el: Element | null, key: string) =>
       (el instanceof HTMLButtonElement ||
         (el instanceof HTMLInputElement && /^(checkbox|radio)$/.test(el.type))))
 
+// 1 for the arrow that goes forward along a line, -1 for the one that goes
+// back: right and left, swapped in right to left text.
+function horizontalOffset(el: Element, key: string) {
+  const rtl = isRtl(el)
+  const forward = rtl ? "ArrowLeft" : "ArrowRight"
+  const back = rtl ? "ArrowRight" : "ArrowLeft"
+  return key === forward ? 1 : key === back ? -1 : 0
+}
+
+function stepRange(el: HTMLInputElement, key: string) {
+  const min = Number(el.min || 0)
+  const max = Number(el.max || 100)
+  const step = Number(el.step) || 1
+  const page = Math.max(step, (max - min) / 10)
+  const value = Number(el.value)
+  const offset =
+    key === "ArrowUp" ? 1 : key === "ArrowDown" ? -1 : horizontalOffset(el, key)
+  const targets: Record<string, number> = {
+    PageUp: value + page,
+    PageDown: value - page,
+    Home: min,
+    End: max,
+  }
+  const target = offset ? value + offset * step : targets[key]
+  if (target === undefined) {
+    return
+  }
+  const before = el.value
+  el.value = String(Math.min(max, Math.max(min, target)))
+  if (el.value !== before) {
+    el.dispatchEvent(markTrusted(new Event("input", { bubbles: true })))
+    el.dispatchEvent(markTrusted(new Event("change", { bubbles: true })))
+  }
+}
+
+function moveRadio(el: HTMLInputElement, key: string) {
+  const offset =
+    key === "ArrowDown" ? 1 : key === "ArrowUp" ? -1 : horizontalOffset(el, key)
+  if (!el.name || !offset) {
+    return
+  }
+  const group = [
+    ...(el.getRootNode() as ParentNode).querySelectorAll("input"),
+  ].filter(
+    (radio) =>
+      radio.type === "radio" &&
+      radio.name === el.name &&
+      radio.form === el.form &&
+      !radio.matches(":disabled") &&
+      !isHidden(radio)
+  )
+  const next = group.at((group.indexOf(el) + offset) % group.length)
+  if (next && next !== el) {
+    next.focus()
+    keyClick(next)
+  }
+}
+
+// What a browser does for a key on a native slider or radio, which a key sent
+// from script never does: step the value, or check the next radio.
+function nativeKeyAction(el: Element, key: string) {
+  if (!(el instanceof HTMLInputElement) || el.matches(":disabled")) {
+    return
+  }
+  if (el.type === "range") {
+    stepRange(el, key)
+  } else if (el.type === "radio") {
+    moveRadio(el, key)
+  }
+}
+
 /**
  * Presses keys one after another on the focused element, like `keys("Tab", "ArrowDown", "Enter")`.
  * Tab from outside `scope` goes into it.
@@ -194,6 +266,9 @@ async function keys(doc: Document, names: string[], scope?: Element) {
     }
     if (proceeds && init.key === "Enter" && activates(target, "Enter")) {
       keyClick(target)
+    }
+    if (proceeds && !init.ctrlKey && !init.metaKey && !init.altKey) {
+      nativeKeyAction(target, init.key)
     }
     const up = (doc.activeElement as HTMLElement | null) ?? doc.body
     up.dispatchEvent(keyEvent("keyup", init))
