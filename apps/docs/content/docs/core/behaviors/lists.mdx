@@ -45,7 +45,7 @@ option: slot<{ value: string }>({
 }),
 ```
 
-`selects` lets a move reach only the option it leaves and the one it lands on. On the input, set `aria-activedescendant` to `api.listbox.activeId(state)` and pass `keydown` to `api.listbox.keydown(event)`. The arrows, PageUp and PageDown move the highlight. With real focus, Home, End and typing an option's name move it too. Moving past either end wraps around unless `loop` returns `false`.
+`selects` lets a move reach only the option it leaves and the one it lands on. On the input, set `aria-activedescendant` to `api.listbox.activeId(state)` and pass `keydown` to `api.listbox.keydown(event)`. The arrows, PageUp and PageDown move the highlight. With real focus, Home, End and typing an option's name move it too. An arrow past either end wraps around unless `loop` returns `false`. A page stops at the first or last option.
 
 Choosing an option is yours. On Enter, read the highlighted key from state and write your value with [`createChange`](../kernel/handle-changes#changes), or with [`createSelection`](./selection) when people can choose several.
 

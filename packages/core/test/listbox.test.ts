@@ -195,6 +195,20 @@ describe("navigation over data", () => {
     expect(store.get().highlighted).toBe("Éclair")
   })
 
+  test("a page stops at the ends, even with loop", () => {
+    const { store, listbox } = make()
+    listbox.move("first")
+    listbox.move(10)
+    expect(store.get().highlighted).toBe("Éclair")
+    listbox.move(10)
+    expect(store.get().highlighted).toBe("Éclair")
+    listbox.move(-10)
+    expect(store.get().highlighted).toBe("apple")
+    store.set({ highlighted: "cherry" })
+    listbox.move(-10)
+    expect(store.get().highlighted).toBe("apple")
+  })
+
   test("with skipDisabled, steps pass over disabled items", () => {
     const { store, listbox } = make(true, "", true)
     listbox.move("last")

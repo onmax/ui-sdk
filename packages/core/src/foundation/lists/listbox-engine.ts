@@ -627,10 +627,12 @@ function createListboxEngine(
     if (!list.length) {
       return undefined
     }
+    // A page stops at the ends, as the APG asks, so only an arrow's step wraps.
+    const wraps = loop && (step === 1 || step === -1)
     const current = store.get().highlighted
     const index = list.findIndex((entry) => entry.key === current)
     if (index !== -1 || typeof step !== "number") {
-      return list[moveIndex(index, step, list.length, loop)].key
+      return list[moveIndex(index, step, list.length, wraps)].key
     }
     // From a skipped item, like one a press focused, a step counts from where it sits.
     const skipped = all.findIndex((entry) => entry.key === current)
@@ -639,7 +641,7 @@ function createListboxEngine(
         .slice(0, skipped)
         .filter((entry) => !entry.disabled).length
       return list[
-        moveIndex(step > 0 ? before - 1 : before, step, list.length, loop)
+        moveIndex(step > 0 ? before - 1 : before, step, list.length, wraps)
       ].key
     }
     // From no highlight, a step forward lands on the first item and a step back on the last.
