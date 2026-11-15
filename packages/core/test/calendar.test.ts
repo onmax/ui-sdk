@@ -1140,6 +1140,16 @@ describe("calendar", () => {
     expect([years[0].value, years.at(-1)!.value]).toEqual([1980, 2000])
   })
 
+  test("the year select names years below 100 as themselves", () => {
+    const instance = calendar({
+      id: "y",
+      defaultMonth: "0050-03",
+      locale: "en-US",
+    }) as PrimitiveInstance
+    const year = partState(instance.part("year-select")) as CalendarSelectState
+    expect(year.options.find((option) => option.value === 50)?.label).toBe("50")
+  })
+
   test("picking a month or a year turns the calendar there, kept between min and max", async () => {
     const onMonthChange = vi.fn()
     const { instance, heading } = mount({
