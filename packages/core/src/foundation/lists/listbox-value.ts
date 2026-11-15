@@ -7,31 +7,33 @@ import { pageLocale } from "../text/locale"
 import { deriveFromOptions } from "../kernel/derive"
 import { type Store, sameValue } from "../kernel/store"
 
-const listFormats = new Map<string | undefined, Intl.ListFormat>()
+const listFormats = new Map<string, Intl.ListFormat>()
 
 /**
  * Labels as one text. Without `maxLabels`, joined with commas. With it, the first
  * `maxLabels` and a count of the rest, joined the way the page's language joins a
- * list: "Apple, Banana and 2 more".
+ * list: "Apple, Banana and 2 more". The default count is English, so a list that
+ * shows it joins in English.
  */
 function formatLabels(
   labels: readonly string[],
   {
     maxLabels,
-    getMoreLabel = (count) => `${count} more`,
+    getMoreLabel,
   }: { maxLabels?: number; getMoreLabel?: (count: number) => string } = {}
 ) {
   if (maxLabels === undefined) {
     return labels.join(", ")
   }
+  const hidden = labels.length - maxLabels
+  const moreLabel = getMoreLabel ?? ((count: number) => `${count} more`)
   const shown =
-    labels.length > maxLabels
-      ? [...labels.slice(0, maxLabels), getMoreLabel(labels.length - maxLabels)]
-      : labels
+    hidden > 0 ? [...labels.slice(0, maxLabels), moreLabel(hidden)] : labels
   if (typeof Intl.ListFormat !== "function") {
     return shown.join(", ")
   }
-  const locale = pageLocale()
+  const locale =
+    hidden > 0 && !getMoreLabel ? "en-US" : (pageLocale() ?? "en-US")
   let format = listFormats.get(locale)
   if (!format) {
     listFormats.set(

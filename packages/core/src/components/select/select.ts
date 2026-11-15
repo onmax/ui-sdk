@@ -371,7 +371,8 @@ type SelectValueProps = {
   /** With `multiple`, how many labels show before the rest are counted, as in "Apple, Banana and 2 more", joined the way the page's language joins lists. */
   maxLabels?: number
   /**
-   * The words for the labels past `maxLabels`.
+   * The words for the labels past `maxLabels`. The default is English, so the
+   * labels shown with it join in English too.
    * @defaultValue (count) => `${count} more`
    */
   getMoreLabel?: (count: number) => string

@@ -157,6 +157,34 @@ describe("labels as a list", () => {
       })
     ).toBe("Apple and +2")
   })
+
+  describe("on a Spanish page", () => {
+    afterEach(() => vi.unstubAllGlobals())
+
+    test("the default count joins in English, so one text has one language", () => {
+      vi.stubGlobal("document", {
+        documentElement: { closest: () => ({ getAttribute: () => "es" }) },
+      })
+      expect(
+        formatLabels(["Apple", "Banana", "Orange", "Pear"], { maxLabels: 2 })
+      ).toBe("Apple, Banana, and 2 more")
+    })
+
+    test("labels and a count in the page's language join in it", () => {
+      vi.stubGlobal("document", {
+        documentElement: { closest: () => ({ getAttribute: () => "es" }) },
+      })
+      expect(formatLabels(["Apple", "Banana"], { maxLabels: 2 })).toBe(
+        "Apple y Banana"
+      )
+      expect(
+        formatLabels(["Apple", "Banana", "Pear"], {
+          maxLabels: 1,
+          getMoreLabel: (count) => `${count} más`,
+        })
+      ).toBe("Apple y 2 más")
+    })
+  })
 })
 
 describe("chips that fit", () => {
