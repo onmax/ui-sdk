@@ -279,7 +279,10 @@ list are its parts.
 {#if items && !own()}
   <ComboboxContent fromRoot />
 {/if}
-<input {...formInput.slot()} />
+{#snippet formField({ value, ...attrs }: Record<string, unknown>)}
+  <textarea {...attrs}>{value}</textarea>
+{/snippet}
+{@render formField(formInput.slot())}
 {#each values as key (key)}
   <ValueInput owner={combobox} value={key} />
 {/each}

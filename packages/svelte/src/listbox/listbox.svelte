@@ -153,7 +153,10 @@ An always-visible list to choose one option from, or several with `multiple`.
   part={wrapPart(root, control)}
   props={{ ...rest, children: children ?? data }}
 />
-<input {...formInput.slot()} />
+{#snippet formField({ value, ...attrs }: Record<string, unknown>)}
+  <textarea {...attrs}>{value}</textarea>
+{/snippet}
+{@render formField(formInput.slot())}
 {#each values as key (key)}
   <ValueInput owner={listbox} value={key} />
 {/each}

@@ -263,7 +263,10 @@ Picks one value, or several with `multiple`, from a list in a popup.
 {#if items && !own()}
   <SelectContent fromRoot />
 {/if}
-<input {...formInput.slot()} />
+{#snippet formField({ value, ...attrs }: Record<string, unknown>)}
+  <textarea {...attrs}>{value}</textarea>
+{/snippet}
+{@render formField(formInput.slot())}
 {#each values as key (key)}
   <ValueInput owner={select} value={key} />
 {/each}

@@ -399,6 +399,24 @@ test.describe("forms", () => {
     )
   })
 
+  test("Enter in the form's one text field submits it, as with a native select", async ({
+    page,
+    open,
+  }) => {
+    await open("select", { value: "banana" })
+    await page.locator(".select-form").evaluate((form) => {
+      form.querySelector("[type=submit]")!.setAttribute("type", "button")
+      const input = document.createElement("input")
+      input.name = "q"
+      input.setAttribute("aria-label", "Query")
+      form.prepend(input)
+    })
+    await page.getByRole("textbox", { name: "Query" }).press("Enter")
+    await expect(page.getByRole("status", { name: "Submitted" })).toHaveText(
+      "q=&fruit=banana"
+    )
+  })
+
   test("a disabled select can't be opened", async ({ page, open }) => {
     await open("select", { disabled: "" })
     await expect(trigger(page)).toBeDisabled()
