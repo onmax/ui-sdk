@@ -62,6 +62,29 @@ function tabbables(root: ParentNode) {
   return Array.from(root.querySelectorAll(candidates)).filter(isTabbable)
 }
 
+// `tabbables` with each open shadow root's stops at its host's place, where
+// Tab visits them.
+function composedTabbables(root: Element) {
+  const stops: HTMLElement[] = []
+  const visit = (scope: Element | ShadowRoot) => {
+    const walker = root.ownerDocument.createTreeWalker(
+      scope,
+      NodeFilter.SHOW_ELEMENT
+    )
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      const el = node as Element
+      if (el.matches(candidates) && isTabbable(el)) {
+        stops.push(el)
+      }
+      if (el.shadowRoot) {
+        visit(el.shadowRoot)
+      }
+    }
+  }
+  visit(root)
+  return stops
+}
+
 // The stops Tab visits before the rest: positive tabindex values, lowest
 // first. One slotted into a custom element orders only within its slot, so it
 // keeps its host's place.
@@ -206,6 +229,7 @@ function bindTabStop(
 
 export {
   bindTabStop,
+  composedTabbables,
   focusables,
   isTabbable,
   nextTabbable,

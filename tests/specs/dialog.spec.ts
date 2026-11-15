@@ -144,6 +144,33 @@ test.describe("focus", () => {
     await expect(page.getByRole("button", { name: "Close" })).toBeFocused()
   })
 
+  test("Tab from a last element in a shadow root wraps to the first", async ({
+    page,
+    tab,
+  }) => {
+    await defineElement(page, "x-end", `<button type="button">Inside</button>`)
+    await openWithKeyboard(page)
+    await dialog(page).evaluate((el) =>
+      el.insertAdjacentHTML("beforeend", `<x-end></x-end>`)
+    )
+    await page.getByRole("button", { name: "Inside" }).focus()
+    await tab()
+    await expect(field(page)).toBeFocused()
+  })
+
+  test("Shift+Tab from the first element wraps to a last element in a shadow root", async ({
+    page,
+    tab,
+  }) => {
+    await defineElement(page, "x-end", `<button type="button">Inside</button>`)
+    await openWithKeyboard(page)
+    await dialog(page).evaluate((el) =>
+      el.insertAdjacentHTML("beforeend", `<x-end></x-end>`)
+    )
+    await tab({ shift: true })
+    expect(await focusedText(page)).toBe("Inside")
+  })
+
   test("Shift+Tab from the first element wraps to the checked radio of a group outside a form", async ({
     page,
     tab,

@@ -48,6 +48,7 @@ import { registerPopupElement } from "./popup-elements"
 import type { Anchor, position, PositionOptions } from "../platform/position"
 import { animateIn, animateOut, writeOpen } from "../motion/presence"
 import {
+  composedTabbables,
   nextTabbable,
   positiveTabStops,
   radioGroup,
@@ -1366,8 +1367,9 @@ function createPopupLayer<
       return options.close("focus-out", { event, focus: false })
     }
     const list = tabbables(popup)
-    const first = list[0]
-    const last = list.at(-1)
+    const stops = composedTabbables(popup)
+    const first = stops[0]
+    const last = stops.at(-1)
     const active = activeElement()
     const atStart = !first || active === first || active === popup
     const atEnd = !last || active === last
