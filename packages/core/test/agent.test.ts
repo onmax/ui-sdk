@@ -2348,7 +2348,7 @@ describe("agent act", () => {
     expect(missing.error?.message).toMatch(/No component "dialog"/)
   })
 
-  test("a step finds a component inside a closed accordion section and opens it", async () => {
+  test("a step finds a component inside a closed accordion section, opens it and reports its change", async () => {
     const agent = createAgent()
     // The section's switch mounts once Email opens, as adapters render a closed panel.
     let unmount: (() => void) | undefined
@@ -2387,6 +2387,12 @@ describe("agent act", () => {
       expect.stringContaining("Deploy failures"),
       true,
     ])
+    expect(outcome.steps[0].changes).toContainEqual({
+      component: "checkbox",
+      label: "Deploy failures",
+      key: "checked",
+      value: true,
+    })
   })
 
   test("a slider given text takes the number in it", async () => {

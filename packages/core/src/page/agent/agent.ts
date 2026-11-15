@@ -1259,6 +1259,7 @@ function createAgent(
     ref: string,
     action: string,
     args: unknown[],
+    prior: ReturnType<typeof capture>,
     guard?: () => boolean
   ) {
     // Model output, which can leave a field out.
@@ -1275,6 +1276,13 @@ function createAgent(
       action,
       action === "press" && typeof args[0] === "string" ? args[0] : undefined
     )
+    // Opening a closed section to find the target mounts its fields, so their
+    // changes count from the state they mounted with.
+    for (const [shown, state] of capture().states) {
+      if (!prior.states.has(shown)) {
+        prior.states.set(shown, state)
+      }
+    }
     const { actions, disabled } = describe(entry, instance, parts)
     // A step is asked about before anything it does, and again when finding
     // its target changed what `allow` would see, like the item a label names
@@ -1746,6 +1754,7 @@ function createAgent(
           step.ref,
           step.action,
           step.args ?? [],
+          prior,
           guard
         )
         touched.add(ref)
