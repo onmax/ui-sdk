@@ -15,6 +15,7 @@ import {
 } from "../src/navigation-menu"
 import { Slider, SliderControl, SliderThumb, SliderTrack } from "../src/slider"
 import { Tabs, TabsList, TabsTab } from "../src/tabs"
+import { Textarea } from "../src/textarea"
 
 Element.prototype.getAnimations ??= () => []
 
@@ -142,6 +143,30 @@ test.each(["value", "modelValue"])(
     expect(await labelled()).toEqual(["INPUT"])
     value.value = [20, 80]
     expect(await labelled()).toEqual(["DIV"])
+    unmount()
+  }
+)
+
+test.each([
+  ["Input", Input],
+  ["Textarea", Textarea],
+])(
+  "v-model's modifiers trim the %s's value and stay off its element",
+  async (_, component) => {
+    const text = ref("")
+    const { el, unmount } = mount(() =>
+      h(component, {
+        modelValue: text.value,
+        modelModifiers: { trim: true },
+        "onUpdate:modelValue": (next: string) => (text.value = next),
+      })
+    )
+    const field = el.querySelector<HTMLInputElement>("input, textarea")!
+    field.value = "  hi  "
+    field.dispatchEvent(new Event("input", { bubbles: true }))
+    await nextTick()
+    expect(text.value).toBe("hi")
+    expect(field.hasAttribute("modelmodifiers")).toBe(false)
     unmount()
   }
 )

@@ -16,6 +16,9 @@ const textProps = {
   required: optionalBoolean,
   controller: Object as PropType<InputController>,
   debug: optionalBoolean,
+  // Vue's emit reads v-model's modifiers itself. Declared, they don't reach the element.
+  modelModifiers: Object as PropType<Record<string, boolean>>,
+  valueModifiers: Object as PropType<Record<string, boolean>>,
 }
 
 const textEmits = {
