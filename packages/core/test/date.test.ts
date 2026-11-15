@@ -372,6 +372,21 @@ describe("typing a date", () => {
     )
   })
 
+  test("reads the day and year beside a month name in the order of the locale's long date", () => {
+    expect(parseDate("16 oktober 2026", "sv-SE")).toBe("2026-10-16")
+    expect(parseDate("16 Oktober 2026", "af-ZA")).toBe("2026-10-16")
+    expect(parseDate("۱۶ اکتبر ۲۰۲۶", "fa-IR")).toBe("2026-10-16")
+    expect(parseDate("2026 m. spalio 16 d.", "lt-LT")).toBe("2026-10-16")
+    expect(
+      parseDate("16 okt 26", "sv-SE", { referenceDate: "2026-01-01" })
+    ).toBe("2026-10-16")
+  })
+
+  test("reads a number of three digits or more beside a month name as the year", () => {
+    expect(parseDate("2026 okt 16", "sv-SE")).toBe("2026-10-16")
+    expect(parseDate("2026 Oct 16", "en-GB")).toBe("2026-10-16")
+  })
+
   test("reads a pasted label with its weekday", () => {
     expect(parseDate("Friday, October 16, 2026", "en-US")).toBe("2026-10-16")
   })

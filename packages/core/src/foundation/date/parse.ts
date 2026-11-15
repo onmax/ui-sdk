@@ -146,12 +146,20 @@ function parseDate(
 
   const values: Partial<Record<DateField, string>> = {}
   if (namedMonth !== undefined) {
-    const rest = fields.filter((field) => field !== "month")
     if (numbers.length > 2 || numbers.length === 0) {
       return undefined
     }
-    // With one number beside the name, it's the day: "October 16".
-    const order = numbers.length === 1 ? ["day" as const] : rest
+    // With one number beside the name, it's the day: "October 16". With two,
+    // one of three digits or more is the year, as in "2026 okt 16" in Swedish.
+    const [first, second] = numbers
+    const order: DateField[] =
+      second === undefined
+        ? ["day"]
+        : first!.length > 2
+          ? ["year", "day"]
+          : second.length > 2
+            ? ["day", "year"]
+            : namedMonthOrder(locale)
     order.forEach((field, index) => (values[field] = numbers[index]))
     values.month = String(namedMonth)
   } else if (numbers.length === 1) {
@@ -179,6 +187,25 @@ function parseDate(
       ? referenceYear
       : fullYear(values.year, referenceYear + offset) - offset
   return isoDate(year, Number(values.month), Number(values.day))
+}
+
+const namedMonthOrders = new Map<string, DateField[]>()
+
+// The day and year beside a month name, in the order of the locale's long
+// date, which can differ from its numeric one: Swedish writes "2026-10-16" but
+// "16 oktober 2026".
+function namedMonthOrder(locale: string | undefined) {
+  const key = locale ?? ""
+  let order = namedMonthOrders.get(key)
+  if (!order) {
+    order = dateFormatter(locale, { dateStyle: "long" })
+      .formatToParts(Date.UTC(2026, 9, 16))
+      .flatMap((part) =>
+        part.type === "day" || part.type === "year" ? [part.type] : []
+      )
+    namedMonthOrders.set(key, order)
+  }
+  return order
 }
 
 const yearOffsets = new Map<string, number>()
