@@ -201,6 +201,17 @@ describe("parsing", () => {
     expect(isPartialNumber("50 километров", "ru-RU", kilometers)).toBe(true)
   })
 
+  test("reads a number written as a word alone, as Arabic and Hebrew write one or two of a unit", () => {
+    const unit = (unit: string) =>
+      ({ style: "unit", unit, unitDisplay: "long" }) as const
+    expect(parseNumber("يوم", "ar", unit("day"))).toBe(1)
+    expect(parseNumber("يومان", "ar", unit("day"))).toBe(2)
+    expect(parseNumber("٣ أيام", "ar-EG", unit("day"))).toBe(3)
+    expect(parseNumber("יומיים", "he", unit("day"))).toBe(2)
+    expect(parseNumber("שתי דקות", "he", unit("minute"))).toBe(2)
+    expect(isPartialNumber("יומיים", "he", unit("day"))).toBe(true)
+  })
+
   test("accepts what could still become a number", () => {
     expect(isPartialNumber("-", "en-US", undefined)).toBe(true)
     expect(isPartialNumber("1.", "en-US", undefined)).toBe(true)

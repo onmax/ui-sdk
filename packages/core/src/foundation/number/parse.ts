@@ -23,6 +23,8 @@ type Symbols = {
   digits: Map<string, string>
   // Divides parsed values, like 100 for percents, which format 0.5 as 50%.
   divisor: number
+  // Numbers written as words alone, like Arabic "يومان" for 2 days.
+  words: Map<string, number>
 }
 
 const symbolCache = new Map<string, Symbols>()
@@ -38,11 +40,18 @@ function symbolsOf(
     return cached
   }
   const formatter = numberFormatter(locale, options)
+  const words = new Map<string, number>()
   const parts = [
     -12345.6,
     12345.6,
     ...pluralSamples(locale, formatter),
-  ].flatMap((sample) => formatter.formatToParts(sample))
+  ].flatMap((sample) => {
+    const sampleParts = formatter.formatToParts(sample)
+    if (!sampleParts.some((part) => part.type === "integer")) {
+      words.set(wordKey(formatter.format(sample)), sample)
+    }
+    return sampleParts
+  })
   const find = (type: string) => parts.find((part) => part.type === type)?.value
   // Formats that show no decimals or no grouping, like percents, yen or
   // `useGrouping: false`, still read the locale's own separators.
@@ -76,6 +85,7 @@ function symbolsOf(
     strip: [...new Set(strip)].sort((a, b) => b.length - a.length),
     digits,
     divisor: options.style === "percent" ? 100 : 1,
+    words,
   }
   symbolCache.set(key, symbols)
   return symbols
@@ -104,6 +114,9 @@ function pluralSamples(
   }
   return samples.values()
 }
+
+const wordKey = (text: string) =>
+  text.replace(formatCharacters, "").replace(spaces, "")
 
 // Accounting formats wrap negatives in parentheses, like ($1,234.56).
 const parenthesized = /^\s*\(.*\)\s*$/
@@ -160,6 +173,10 @@ function parseNumber(
   format?: Intl.NumberFormatOptions
 ) {
   const symbols = symbolsOf(locale, format ?? {})
+  const word = symbols.words.get(wordKey(text))
+  if (word !== undefined) {
+    return word
+  }
   const normalized = normalize(text, symbols)
   if (!complete.test(normalized)) {
     return null
