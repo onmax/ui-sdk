@@ -135,19 +135,22 @@ function parseDate(
   }
 
   let namedMonth: number | undefined
-  let era: number | undefined
+  let lowered = normalized.toLocaleLowerCase(locale)
+  const eraName = erasOf(locale).pattern?.exec(lowered)
+  const era = eraName
+    ? erasOf(locale).offsets.get(compact(eraName[0], locale))
+    : undefined
+  if (eraName) {
+    lowered = `${lowered.slice(0, eraName.index)} ${lowered.slice(eraName.index + eraName[0].length)}`
+  }
   const numbers: string[] = []
-  for (const token of normalized
-    .toLocaleLowerCase(locale)
-    .match(/\p{N}+|[\p{L}\p{M}]+/gu) ?? []) {
+  for (const token of lowered.match(/\p{N}+|[\p{L}\p{M}]+/gu) ?? []) {
     if (/^\d+$/.test(token)) {
       numbers.push(token)
       continue
     }
     const month = monthFromName(token, locale)
-    if (era === undefined && erasOf(locale).offsets.has(token)) {
-      era = erasOf(locale).offsets.get(token)
-    } else if (month !== undefined && namedMonth === undefined) {
+    if (month !== undefined && namedMonth === undefined) {
       namedMonth = month
     } else if (!isPatternWord(token, locale)) {
       return undefined
@@ -408,6 +411,8 @@ function readYearOffset(locale: string | undefined) {
 type Eras = {
   offsets: Map<string, number>
   firstYears: Set<string>
+  // The names as written, spaces kept, matched as whole words.
+  pattern?: RegExp
 }
 
 const eraCache = new Map<string, Eras>()
@@ -437,6 +442,7 @@ function erasOf(locale: string | undefined) {
         parts.find((part) => part.type === type)?.value ?? ""
       return { era: valueOf("era"), year: valueOf("year") }
     }
+    const written = new Set<string>()
     const found = new Map<string, { offset: number | null; year: number }>()
     for (let year = 1868; writesEras && year <= 2100; year++) {
       const { era, year: value } = partsOf("short", Date.UTC(year, 0, 1))
@@ -455,15 +461,29 @@ function erasOf(locale: string | undefined) {
         continue
       }
       for (const width of eraWidths) {
-        const name = partsOf(width, Date.UTC(year, 0, 1)).era
+        const name = dateFormatter(locale, { year: "numeric", era: width })
+          .formatToParts(Date.UTC(year, 0, 1))
+          .find((part) => part.type === "era")?.value
         if (name) {
-          eras.offsets.set(name, offset)
+          eras.offsets.set(compact(name, locale), offset)
+          written.add(
+            toLatinDigits(name.replace(directionMarks, ""), locale)
+              .trim()
+              .toLocaleLowerCase(locale)
+          )
         }
         const first = partsOf(width, Date.UTC(offset + 1, 11, 31)).year
         if (!/\d/.test(first)) {
           eras.firstYears.add(first)
         }
       }
+    }
+    if (written.size) {
+      const names = anyOf([...written].sort((a, b) => b.length - a.length))
+      eras.pattern = new RegExp(
+        `(?<![\\p{L}\\p{M}])(?:${names})(?![\\p{L}\\p{M}])`,
+        "u"
+      )
     }
     eraCache.set(key, eras)
   }
@@ -479,8 +499,9 @@ function eraOf(date: ISODate, locale: string | undefined) {
   return erasOf(locale).offsets.get(compact(era ?? "", locale))
 }
 
-// The Gregorian years a year written in an era can be: as written, or two
-// digits near the reference, like "05.01.69 BE" for Buddhist 2569 in German.
+// As written first, the way a Date Picker's numeric date writes it, then two
+// digits near the reference, like "69 BE" for 2569. German ROC writes 1926 and,
+// in its short date, 2026 as "05.01.15 Minguo", so that reads as 1926.
 function eraYears(text: string, offset: number, referenceYear: number) {
   return [Number(text), fullYear(text, referenceYear - offset)].map(
     (year) => year + offset

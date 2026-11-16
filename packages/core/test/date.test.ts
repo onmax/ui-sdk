@@ -460,6 +460,24 @@ describe("typing a date", () => {
     ).toBe("2026-10-16")
   })
 
+  test("reads an era name written with a space", () => {
+    expect(parseDate("5/1/115 جمهورية الصي", "ar-u-ca-roc")).toBe("2026-01-05")
+  })
+
+  test("reads an era year two forms write alike the way the numeric form writes it", () => {
+    const numeric = {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    } as const
+    const text = "05.01.15 Minguo"
+    expect(formatDate("1926-01-05", "de-u-ca-roc", numeric)).toBe(text)
+    expect(
+      formatDate("2026-01-05", "de-u-ca-roc", { dateStyle: "short" })
+    ).toBe(text)
+    expect(parseDate(text, "de-u-ca-roc")).toBe("1926-01-05")
+  })
+
   test("doesn't read a date outside the era it's written in", () => {
     const japanese = "ja-JP-u-ca-japanese"
     expect(parseDate("平成31年5月1日", japanese)).toBeUndefined()
