@@ -320,6 +320,19 @@ describe("@ui-sdk/core/number", () => {
     expect(formatNumberRange(1, Number.NaN, "en-US")).toBe("")
   })
 
+  test("formatNumberRange writes both ends whole when one is negative", () => {
+    const days = { style: "unit", unit: "day", unitDisplay: "long" } as const
+    expect(formatNumberRange(-5, -2, "ar", days)).toBe(
+      "\u200e-5 أيام–\u200e-يومان"
+    )
+    expect(formatNumberRange(-5, -2, "ar-EG")).toBe("\u061c-٥–\u061c-٢")
+    expect(formatNumberRange(-5, -2, "en-US")).toBe("-5 – -2")
+    expect(formatNumberRange(-0.05, -0.02, "en-US", { style: "percent" })).toBe(
+      "-5%–-2%"
+    )
+    expect(formatNumberRange(-5, 2, "he", days)).toBe("\u200e-5 ימים – יומיים")
+  })
+
   test("formatNumberToParts splits a value into its digits and symbols", () => {
     const parts = formatNumberToParts(1234.5, "en-US", {
       style: "currency",

@@ -109,6 +109,22 @@ function formatNumberRange(
   // `formatRange` is newer than the ES2022 types, and older engines lack it.
   const formatter = numberFormatter(locale, format) as Intl.NumberFormat & {
     formatRange?: (start: number, end: number) => string
+    formatRangeToParts?: (
+      start: number,
+      end: number
+    ) => (Intl.NumberFormatPart & { source: string })[]
+  }
+  // `Intl` can share one minus sign between both ends, "-5–2%" for -5% to
+  // -2%, which reads as -5% to 2%, so with a negative end each is written whole.
+  const parts =
+    (start < 0 || end < 0) && formatter.formatRangeToParts?.(start, end)
+  const sources = parts ? parts.map((part) => part.source) : []
+  if (parts && sources.includes("endRange")) {
+    const separator = parts
+      .slice(sources.lastIndexOf("startRange") + 1, sources.indexOf("endRange"))
+      .map((part) => part.value)
+      .join("")
+    return `${formatNumber(start, locale, format)}${separator}${formatNumber(end, locale, format)}`
   }
   return formatter.formatRange
     ? formatter.formatRange(start, end)
