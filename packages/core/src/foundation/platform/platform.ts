@@ -243,13 +243,20 @@ function matchesShortcut(
   if (!keys) {
     cache.set(shortcut, (keys = ariaKeyshortcuts(shortcut, apple).split("+")))
   }
+  const last = keys.at(-1)!
   return (
-    matchesKey(event, keys.at(-1)!) &&
+    matchesKey(event, last) &&
     event.metaKey === keys.includes("Meta") &&
     event.ctrlKey === keys.includes("Control") &&
     event.altKey === keys.includes("Alt") &&
-    event.shiftKey === keys.includes("Shift")
+    (event.shiftKey === keys.includes("Shift") || typesWithShift(last, keys))
   )
+}
+
+// A symbol like `/` or `?` names the character it types. Many layouts need Shift for it, like `/` on a Spanish or
+// German keyboard, so Shift doesn't count against it unless the shortcut names Shift.
+function typesWithShift(key: string, keys: string[]) {
+  return key.length === 1 && !/^[A-Z0-9]$/.test(key) && !keys.includes("Shift")
 }
 
 // Whether a shortcut holds Command, Control or Option, so it can't be typing.

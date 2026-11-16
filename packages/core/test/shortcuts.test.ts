@@ -147,6 +147,27 @@ describe("matching shortcuts", () => {
     ).toBe(true)
   })
 
+  test("a symbol matches when the layout needs Shift to type it", () => {
+    // Spanish and German layouts type `/` with Shift+7, and US layouts type `?` with Shift+/.
+    expect(
+      matchesShortcut(
+        key({ key: "/", code: "Digit7", shift: true }),
+        "/",
+        false
+      )
+    ).toBe(true)
+    expect(
+      matchesShortcut(key({ key: "?", code: "Slash", shift: true }), "?", true)
+    ).toBe(true)
+    expect(
+      matchesShortcut(key({ key: "/", code: "Slash" }), "shift+/", true)
+    ).toBe(false)
+    // Letters and digits still need the exact modifiers.
+    expect(
+      matchesShortcut(key({ key: "N", code: "KeyN", shift: true }), "n", true)
+    ).toBe(false)
+  })
+
   test("modifiers must match exactly", () => {
     expect(
       matchesShortcut(
