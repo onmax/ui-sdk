@@ -536,9 +536,23 @@ function triggerMenuApiBody(
       // own, like Enter submitting a prompt.
       const onKey = (event: KeyboardEvent) => {
         const target = event.target as Node | null
-        if (target && next.element?.contains(target)) {
-          onKeyDown(event)
+        if (!target || !next.element?.contains(target)) {
+          return
         }
+        // The popup's layer hears Escape as it bubbles, after the editor. An
+        // editor like ProseMirror takes Escape for itself, so an open menu
+        // takes it here first.
+        if (
+          event.key === "Escape" &&
+          store.get().open &&
+          !event.defaultPrevented &&
+          !isComposing(event)
+        ) {
+          event.preventDefault()
+          levels.end("escape-key", event, { dismiss: true })
+          return
+        }
+        onKeyDown(event)
       }
       document.addEventListener("keydown", onKey, true)
       cleanups.push(() => document.removeEventListener("keydown", onKey, true))
