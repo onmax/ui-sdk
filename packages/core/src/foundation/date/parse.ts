@@ -165,7 +165,7 @@ function parseDate(
           ? ["year", "day"]
           : second.length > 2
             ? ["day", "year"]
-            : namedMonthOrder(locale)
+            : styleOrder(locale, "long").filter((field) => field !== "month")
     order.forEach((field, index) => (values[field] = numbers[index]))
     values.month = String(namedMonth)
   } else if (numbers.length === 1) {
@@ -175,14 +175,25 @@ function parseDate(
     }
     const yearLength = digits.length - 4
     let offset = 0
-    for (const field of fields) {
+    for (const field of yearLength === 2
+      ? styleOrder(locale, "short")
+      : fields) {
       const length = field === "year" ? yearLength : 2
       values[field] = digits.slice(offset, (offset += length))
     }
   } else if (numbers.length === 2 || numbers.length === 3) {
+    // Some locales order their numeric and short dates apart, like Zulu
+    // "2026-12-31" and "12/31/26": a long year picks the order with the year
+    // where it is, and short numbers read in the short date's order.
+    const short = styleOrder(locale, "short")
+    const year = numbers.findIndex((number) => number.length > 2)
     const order =
-      numbers.length === 3 ? fields : fields.filter((field) => field !== "year")
-    order.forEach((field, index) => (values[field] = numbers[index]))
+      year === -1 || numbers.length === 2
+        ? short
+        : ([fields, short].find((order) => order[year] === "year") ?? fields)
+    order
+      .filter((field) => numbers.length === 3 || field !== "year")
+      .forEach((field, index) => (values[field] = numbers[index]))
   } else {
     return undefined
   }
@@ -195,21 +206,22 @@ function parseDate(
   return isoDate(year, Number(values.month), Number(values.day))
 }
 
-const namedMonthOrders = new Map<string, DateField[]>()
+const styleOrders = new Map<string, DateField[]>()
 
-// The day and year beside a month name, in the order of the locale's long
-// date, which can differ from its numeric one: Swedish writes "2026-10-16" but
-// "16 oktober 2026".
-function namedMonthOrder(locale: string | undefined) {
-  const key = locale ?? ""
-  let order = namedMonthOrders.get(key)
+// The fields in the order of the locale's short or long date, which can
+// differ from its numeric one: Swedish writes "2026-10-16" but "16 oktober 2026".
+function styleOrder(locale: string | undefined, dateStyle: "short" | "long") {
+  const key = `${locale ?? ""}|${dateStyle}`
+  let order = styleOrders.get(key)
   if (!order) {
-    order = dateFormatter(locale, { dateStyle: "long" })
+    order = dateFormatter(locale, { dateStyle })
       .formatToParts(Date.UTC(2026, 9, 16))
       .flatMap((part) =>
-        part.type === "day" || part.type === "year" ? [part.type] : []
+        part.type === "day" || part.type === "month" || part.type === "year"
+          ? [part.type]
+          : []
       )
-    namedMonthOrders.set(key, order)
+    styleOrders.set(key, order)
   }
   return order
 }

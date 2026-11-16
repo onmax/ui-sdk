@@ -350,6 +350,16 @@ describe("typing a date", () => {
     )
   })
 
+  test("reads short numbers in the short date's order when it differs from the numeric one", () => {
+    const reference = { referenceDate: "2026-01-01" } as const
+    expect(parseDate("1/5/26", "zu-ZA", reference)).toBe("2026-01-05")
+    expect(parseDate("010526", "zu-ZA", reference)).toBe("2026-01-05")
+    expect(parseDate("2026-01-05", "zu-ZA")).toBe("2026-01-05")
+    expect(parseDate("5/1/26", "ky-KG", reference)).toBe("2026-01-05")
+    expect(parseDate("31/12/2026", "ak")).toBe("2026-12-31")
+    expect(parseDate("2026/12/31", "ak")).toBe("2026-12-31")
+  })
+
   test("two-digit years land near the reference year", () => {
     expect(
       parseDate("10/16/26", "en-US", { referenceDate: "2026-01-01" })
