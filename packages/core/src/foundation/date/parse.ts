@@ -104,7 +104,8 @@ function fieldNames(locale: string | undefined) {
  * "October 16"), the locale's medium, long and full dates as `Intl` writes
  * them, weekday included, the locale's own digits, and ISO dates. A missing
  * year is `referenceDate`'s, today's by default. Years read in the locale's calendar,
- * like Buddhist years in Thai. A two-digit year lands in the hundred years that
+ * like Buddhist years in Thai, and in the era they're written in, like
+ * Japanese "R8/10/16". A two-digit year lands in the hundred years that
  * end 20 years after the reference year: "26" is 2026 and "70" is 1970 in 2026.
  * @stable
  */
@@ -134,6 +135,7 @@ function parseDate(
   }
 
   let namedMonth: number | undefined
+  let era: number | undefined
   const numbers: string[] = []
   for (const token of normalized
     .toLocaleLowerCase(locale)
@@ -143,7 +145,9 @@ function parseDate(
       continue
     }
     const month = monthFromName(token, locale)
-    if (month !== undefined && namedMonth === undefined) {
+    if (era === undefined && erasOf(locale).offsets.has(token)) {
+      era = erasOf(locale).offsets.get(token)
+    } else if (month !== undefined && namedMonth === undefined) {
       namedMonth = month
     } else if (!isPatternWord(token, locale)) {
       return undefined
@@ -198,6 +202,15 @@ function parseDate(
     return undefined
   }
 
+  if (era !== undefined && values.year !== undefined) {
+    for (const year of eraYears(values.year, era, referenceYear)) {
+      const date = isoDate(year, Number(values.month), Number(values.day))
+      if (date && eraOf(date, locale) === era) {
+        return date
+      }
+    }
+    return undefined
+  }
   const offset = yearOffset(locale)
   const year =
     values.year === undefined
@@ -231,7 +244,7 @@ const writtenStyles = ["full", "long", "medium"] as const
 type WrittenDate = {
   dateStyle: (typeof writtenStyles)[number]
   pattern: RegExp
-  fields: DateField[]
+  fields: (DateField | "era")[]
   months: Map<string, number>
 }
 
@@ -260,21 +273,32 @@ function parseWrittenDate(
     if (!match) {
       continue
     }
-    const values: Partial<Record<DateField, string>> = {}
+    const values: Partial<Record<DateField | "era", string>> = {}
     fields.forEach((field, index) => (values[field] = match[index + 1]))
+    const { offsets, firstYears } = erasOf(locale)
+    const era = values.era === undefined ? undefined : offsets.get(values.era)
+    const written = firstYears.has(values.year ?? "")
+      ? "1"
+      : (values.year ?? "")
     const offset = yearOffset(locale)
-    const date = isoDate(
-      fullYear(values.year ?? "", referenceYear + offset) - offset,
-      months.get(values.month ?? "") ?? 0,
-      Number(values.day)
-    )
-    // Only a date that writes back as the same text, so a wrong weekday or
-    // an era's years don't read as some other date.
-    if (
-      date &&
-      compact(formatDate(date, locale, { dateStyle }), locale) === typed
-    ) {
-      return date
+    const years =
+      era === undefined
+        ? [fullYear(written, referenceYear + offset) - offset]
+        : eraYears(written, era, referenceYear)
+    for (const year of years) {
+      const date = isoDate(
+        year,
+        months.get(values.month ?? "") ?? 0,
+        Number(values.day)
+      )
+      // Only a date that writes back as the same text, so a wrong weekday or
+      // era doesn't read as some other date.
+      if (
+        date &&
+        compact(formatDate(date, locale, { dateStyle }), locale) === typed
+      ) {
+        return date
+      }
     }
   }
   return undefined
@@ -317,13 +341,22 @@ function readWrittenDate(
       weekdays.add(compact(name, locale))
     }
   }
-  const fields: DateField[] = []
+  const { offsets, firstYears } = erasOf(locale)
+  const fields: WrittenDate["fields"] = []
   const source = formatter
     .formatToParts(Date.UTC(2026, 9, 16))
     .map((part) => {
-      if (part.type === "day" || part.type === "year") {
-        fields.push(part.type)
+      if (part.type === "day") {
+        fields.push("day")
         return "(\\d+)"
+      }
+      if (part.type === "year") {
+        fields.push("year")
+        return `(\\d+${firstYears.size ? `|${anyOf(firstYears)}` : ""})`
+      }
+      if (part.type === "era" && offsets.size) {
+        fields.push("era")
+        return `(${anyOf(offsets.keys())})`
       }
       if (part.type === "month") {
         fields.push("month")
@@ -370,6 +403,88 @@ function readYearOffset(locale: string | undefined) {
     return 0
   }
   return year - 2026
+}
+
+type Eras = {
+  offsets: Map<string, number>
+  firstYears: Set<string>
+}
+
+const eraCache = new Map<string, Eras>()
+const eraWidths = ["narrow", "short", "long"] as const
+
+// Each era a locale writes, like Japanese "令和" or "R", with the Gregorian
+// year before its first, and words for a first year, like "元". An era that
+// counts its years down, like "民國前", has no such year, so it isn't read.
+function erasOf(locale: string | undefined) {
+  const key = locale ?? ""
+  let eras = eraCache.get(key)
+  if (!eras) {
+    eras = { offsets: new Map(), firstYears: new Set() }
+    const writesEras = [
+      numericDate,
+      ...writtenStyles.map((dateStyle) => ({ dateStyle })),
+    ].some((options) =>
+      dateFormatter(locale, options)
+        .formatToParts(Date.UTC(2026, 9, 16))
+        .some((part) => part.type === "era")
+    )
+    const partsOf = (era: (typeof eraWidths)[number], time: number) => {
+      const parts = dateFormatter(locale, { year: "numeric", era })
+        .formatToParts(time)
+        .map((part) => ({ ...part, value: compact(part.value, locale) }))
+      const valueOf = (type: string) =>
+        parts.find((part) => part.type === type)?.value ?? ""
+      return { era: valueOf("era"), year: valueOf("year") }
+    }
+    const found = new Map<string, { offset: number | null; year: number }>()
+    for (let year = 1868; writesEras && year <= 2100; year++) {
+      const { era, year: value } = partsOf("short", Date.UTC(year, 0, 1))
+      if (!era) {
+        break
+      }
+      const offset = year - Number(value)
+      const known = found.get(era)
+      found.set(era, {
+        offset: !known || known.offset === offset ? offset : null,
+        year: known?.year ?? year,
+      })
+    }
+    for (const { offset, year } of found.values()) {
+      if (offset === null) {
+        continue
+      }
+      for (const width of eraWidths) {
+        const name = partsOf(width, Date.UTC(year, 0, 1)).era
+        if (name) {
+          eras.offsets.set(name, offset)
+        }
+        const first = partsOf(width, Date.UTC(offset + 1, 11, 31)).year
+        if (!/\d/.test(first)) {
+          eras.firstYears.add(first)
+        }
+      }
+    }
+    eraCache.set(key, eras)
+  }
+  return eras
+}
+
+// The offset of the era a date is in.
+function eraOf(date: ISODate, locale: string | undefined) {
+  const { year, month, day } = dateParts(date)!
+  const era = dateFormatter(locale, { year: "numeric", era: "short" })
+    .formatToParts(Date.UTC(year, month - 1, day))
+    .find((part) => part.type === "era")?.value
+  return erasOf(locale).offsets.get(compact(era ?? "", locale))
+}
+
+// The Gregorian years a year written in an era can be: as written, or two
+// digits near the reference, like "05.01.69 BE" for Buddhist 2569 in German.
+function eraYears(text: string, offset: number, referenceYear: number) {
+  return [Number(text), fullYear(text, referenceYear - offset)].map(
+    (year) => year + offset
+  )
 }
 
 function fullYear(text: string, referenceYear: number) {

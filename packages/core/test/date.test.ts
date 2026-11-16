@@ -443,8 +443,28 @@ describe("typing a date", () => {
     expect(parseDate("2026年10月16日星期五", "zh-CN")).toBe("2026-10-16")
   })
 
-  test("doesn't read a Japanese era's year as a Gregorian one", () => {
-    expect(parseDate("令和8年10月16日", "ja-JP-u-ca-japanese")).toBeUndefined()
+  test("reads a year written in an era", () => {
+    const japanese = "ja-JP-u-ca-japanese"
+    expect(parseDate("令和8年10月16日", japanese)).toBe("2026-10-16")
+    expect(parseDate("令和8年10月16日金曜日", japanese)).toBe("2026-10-16")
+    expect(parseDate("R8/10/16", japanese)).toBe("2026-10-16")
+    expect(parseDate("H11/7/4", japanese)).toBe("1999-07-04")
+    expect(parseDate("令和元年5月1日", japanese)).toBe("2019-05-01")
+    expect(parseDate("民國115/10/16", "zh-TW-u-ca-roc")).toBe("2026-10-16")
+    expect(parseDate("民國88/7/4", "zh-TW-u-ca-roc")).toBe("1999-07-04")
+    expect(parseDate("10/16/2569 BE", "en-US-u-ca-buddhist")).toBe("2026-10-16")
+    expect(
+      parseDate("16.10.69 BE", "de-u-ca-buddhist", {
+        referenceDate: "2026-01-01",
+      })
+    ).toBe("2026-10-16")
+  })
+
+  test("doesn't read a date outside the era it's written in", () => {
+    const japanese = "ja-JP-u-ca-japanese"
+    expect(parseDate("平成31年5月1日", japanese)).toBeUndefined()
+    expect(parseDate("S64/1/8", japanese)).toBeUndefined()
+    expect(parseDate("民國前1/1/1", "zh-TW-u-ca-roc")).toBeUndefined()
   })
 
   test("reads a pasted label with its weekday", () => {
