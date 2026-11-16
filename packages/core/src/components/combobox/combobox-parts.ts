@@ -65,6 +65,7 @@ import { selectAllFeature } from "../../foundation/lists/listbox-select-all"
 import { idPart, openAttrs } from "../../foundation/kernel/attrs"
 import type { SlotFactory } from "../../foundation/kernel/primitive-types"
 import { formatLabels, listOf } from "../../foundation/lists/listbox-value"
+import { bindPageLocale, localeOf } from "../../foundation/text/locale"
 import { selects } from "../../foundation/kernel/selects"
 import { direct, live } from "../../foundation/kernel/live"
 import { pressKeepsFocus } from "../../foundation/focus/press-keeps-focus"
@@ -136,6 +137,7 @@ const unreadByItems = {
   error: [],
   labels: [],
   icons: [],
+  pageLocale: [],
   mounts: [],
   settled: [],
   presentation: [],
@@ -273,6 +275,7 @@ const comboboxSlots = (slot: SlotFactory<ComboboxState, ComboboxApi>) => ({
       api.internal.show({ event, by: openerOf(event), reason: "trigger-press" })
     },
     bind(el, { api, id, store }) {
+      bindPageLocale(el, (pageLocale) => store.set({ pageLocale }))
       // A value whose label or icon only its item knows: render the list
       // hidden so the item says it, once the parts that render now have.
       const { items, itemToLabel } = api.internal.options()
@@ -351,6 +354,8 @@ const comboboxSlots = (slot: SlotFactory<ComboboxState, ComboboxApi>) => ({
       const by = openerOf(event)
       api.internal.show({ event, by, reason: "trigger-press" })
     },
+    bind: (el, { store }) =>
+      bindPageLocale(el, (pageLocale) => store.set({ pageLocale })),
   }),
 
   content: slot<ComboboxContentProps, ComboboxContentState>({
@@ -462,7 +467,11 @@ const comboboxSlots = (slot: SlotFactory<ComboboxState, ComboboxApi>) => ({
     props: { maxLabels: "number", getMoreLabel: "value" },
     state: (state, { api, props }) => {
       const labels = api.internal.selection.labels()
-      return { value: state.value, labels, label: formatLabels(labels, props) }
+      return {
+        value: state.value,
+        labels,
+        label: formatLabels(labels, props, localeOf(state)),
+      }
     },
   }),
 

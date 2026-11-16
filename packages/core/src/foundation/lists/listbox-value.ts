@@ -3,7 +3,6 @@
 // one item's value or `null`, or a list with `multiple`, and values may be
 // objects: keys are their strings, from `itemToValue`.
 import { type Listbox } from "./listbox"
-import { pageLocale } from "../text/locale"
 import { deriveFromOptions } from "../kernel/derive"
 import { type Store, sameValue } from "../kernel/store"
 
@@ -11,8 +10,8 @@ const listFormats = new Map<string, Intl.ListFormat>()
 
 /**
  * Labels as one text. Without `maxLabels`, joined with commas. With it, the first
- * `maxLabels` and a count of the rest, joined the way the page's language joins a
- * list: "Apple, Banana and 2 more". The default count is English, so a list that
+ * `maxLabels` and a count of the rest, joined the way `locale` joins a list:
+ * "Apple, Banana and 2 more". The default count is English, so a list that
  * shows it joins in English.
  */
 function formatLabels(
@@ -20,7 +19,8 @@ function formatLabels(
   {
     maxLabels,
     getMoreLabel,
-  }: { maxLabels?: number; getMoreLabel?: (count: number) => string } = {}
+  }: { maxLabels?: number; getMoreLabel?: (count: number) => string },
+  locale: string
 ) {
   if (maxLabels === undefined) {
     return labels.join(", ")
@@ -32,13 +32,12 @@ function formatLabels(
   if (typeof Intl.ListFormat !== "function") {
     return shown.join(", ")
   }
-  const locale =
-    hidden > 0 && !getMoreLabel ? "en-US" : (pageLocale() ?? "en-US")
-  let format = listFormats.get(locale)
+  const listLocale = hidden > 0 && !getMoreLabel ? "en-US" : locale
+  let format = listFormats.get(listLocale)
   if (!format) {
     listFormats.set(
-      locale,
-      (format = new Intl.ListFormat(locale, { type: "conjunction" }))
+      listLocale,
+      (format = new Intl.ListFormat(listLocale, { type: "conjunction" }))
     )
   }
   return format.format(shown)

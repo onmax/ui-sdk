@@ -60,6 +60,7 @@ import type {
 } from "./select"
 import type { SelectApi, SelectState } from "./select-api"
 import { formatLabels, listOf } from "../../foundation/lists/listbox-value"
+import { bindPageLocale, localeOf } from "../../foundation/text/locale"
 import { selects } from "../../foundation/kernel/selects"
 import { direct, live } from "../../foundation/kernel/live"
 
@@ -156,6 +157,7 @@ const unreadByItems = {
   items: [],
   labels: [],
   icons: [],
+  pageLocale: [],
   query: [],
   searchable: [],
   focusInList: [],
@@ -253,6 +255,7 @@ const selectSlots = (slot: SlotFactory<SelectState, SelectApi>) => ({
     },
     bind(el, { api, id, store }) {
       settleFlag(store, "labeled")
+      bindPageLocale(el, (pageLocale) => store.set({ pageLocale }))
       // A value whose label or icon only its item knows: render the list
       // hidden so the item registers, once the parts that render now have.
       if (!store.get().items && !api.internal.options().itemToLabel) {
@@ -285,7 +288,7 @@ const selectSlots = (slot: SlotFactory<SelectState, SelectApi>) => ({
       const labels = api.internal.selection.labels()
       return {
         value: state.value,
-        label: formatLabels(labels, props),
+        label: formatLabels(labels, props, localeOf(state)),
         labels,
         placeholder: labels.length === 0,
       }
@@ -302,7 +305,7 @@ const selectSlots = (slot: SlotFactory<SelectState, SelectApi>) => ({
       const write = () => {
         const labels = api.internal.selection.labels()
         const text = labels.length
-          ? formatLabels(labels, props)
+          ? formatLabels(labels, props, localeOf(store.get()))
           : (props.placeholder ?? store.get().placeholder ?? "")
         if (el.textContent !== text) {
           el.textContent = text

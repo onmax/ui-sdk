@@ -140,50 +140,50 @@ describe("select all", () => {
 })
 
 describe("labels as a list", () => {
-  test("joins with commas without maxLabels, and counts the rest in the page's language with it", () => {
-    expect(formatLabels(["Apple", "Banana", "Orange"])).toBe(
+  test("joins with commas without maxLabels, and counts the rest in the given language with it", () => {
+    expect(formatLabels(["Apple", "Banana", "Orange"], {}, "en-US")).toBe(
       "Apple, Banana, Orange"
     )
     expect(
-      formatLabels(["Apple", "Banana", "Orange", "Pear"], { maxLabels: 2 })
+      formatLabels(
+        ["Apple", "Banana", "Orange", "Pear"],
+        { maxLabels: 2 },
+        "en-US"
+      )
     ).toBe("Apple, Banana, and 2 more")
-    expect(formatLabels(["Apple", "Banana"], { maxLabels: 2 })).toBe(
+    expect(formatLabels(["Apple", "Banana"], { maxLabels: 2 }, "en-US")).toBe(
       "Apple and Banana"
     )
     expect(
-      formatLabels(["Apple", "Banana", "Pear"], {
-        maxLabels: 1,
-        getMoreLabel: (n) => `+${n}`,
-      })
+      formatLabels(
+        ["Apple", "Banana", "Pear"],
+        { maxLabels: 1, getMoreLabel: (n) => `+${n}` },
+        "en-US"
+      )
     ).toBe("Apple and +2")
   })
 
-  describe("on a Spanish page", () => {
-    afterEach(() => vi.unstubAllGlobals())
-
-    test("the default count joins in English, so one text has one language", () => {
-      vi.stubGlobal("document", {
-        documentElement: { closest: () => ({ getAttribute: () => "es" }) },
-      })
-      expect(
-        formatLabels(["Apple", "Banana", "Orange", "Pear"], { maxLabels: 2 })
-      ).toBe("Apple, Banana, and 2 more")
-    })
-
-    test("labels and a count in the page's language join in it", () => {
-      vi.stubGlobal("document", {
-        documentElement: { closest: () => ({ getAttribute: () => "es" }) },
-      })
-      expect(formatLabels(["Apple", "Banana"], { maxLabels: 2 })).toBe(
-        "Apple y Banana"
+  test("the default count joins in English, so one text has one language", () => {
+    expect(
+      formatLabels(
+        ["Apple", "Banana", "Orange", "Pear"],
+        { maxLabels: 2 },
+        "es"
       )
-      expect(
-        formatLabels(["Apple", "Banana", "Pear"], {
-          maxLabels: 1,
-          getMoreLabel: (count) => `${count} más`,
-        })
-      ).toBe("Apple y 2 más")
-    })
+    ).toBe("Apple, Banana, and 2 more")
+  })
+
+  test("labels and a count in the page's language join in it", () => {
+    expect(formatLabels(["Apple", "Banana"], { maxLabels: 2 }, "es")).toBe(
+      "Apple y Banana"
+    )
+    expect(
+      formatLabels(
+        ["Apple", "Banana", "Pear"],
+        { maxLabels: 1, getMoreLabel: (count) => `${count} más` },
+        "es"
+      )
+    ).toBe("Apple y 2 más")
   })
 })
 
