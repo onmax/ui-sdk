@@ -34,7 +34,9 @@ test("no axe violations with errors from the server and a clear button", async (
 }) => {
   await open("form", { errors: "" })
   await textbox(page, "Website").fill("example.com")
-  await expect(page.getByText("This email bounced.")).toBeVisible()
+  // The live announcer reads the same message out, outside the form.
+  const form = page.getByRole("form", { name: "Sign up" })
+  await expect(form.getByText("This email bounced.")).toBeVisible()
   expect(await audit(page)).toEqual([])
 })
 
