@@ -10,6 +10,7 @@ import {
 } from "./date-input-api"
 import type { DateInputSegmentData, EditableType } from "./date-input-model"
 import {
+  bindFieldPart,
   bindInternals,
   bindValueInput,
   formInternals,
@@ -367,8 +368,10 @@ const dateInputSlots = (slot: SlotFactory<State, DateInputApi>) => ({
       input.addEventListener("compositionend", onInput)
       input.addEventListener("focus", select)
       const unsubscribe = store.subscribe(write)
+      const release = bindFieldPart(input)
       return () => {
         unsubscribe()
+        release()
         cancelAnimationFrame(frame)
         input.removeEventListener("beforeinput", onBeforeInput)
         input.removeEventListener("input", onInput)

@@ -175,6 +175,22 @@ const blocksImplicitSubmission = new Set([
   "number",
 ])
 
+// Text inputs that are parts of one field, like a date input's segments.
+// Browsers don't count a native date or time input as a field that blocks
+// implicit submission, so these don't count either.
+const fieldParts = new WeakSet<Element>()
+const partsListening = new Map<Document, number>()
+
+const blocksSubmission = (el: Element) =>
+  el instanceof HTMLInputElement &&
+  blocksImplicitSubmission.has(el.type) &&
+  !fieldParts.has(el)
+
+const isSubmitButton = (el: Element) =>
+  (el instanceof HTMLButtonElement && el.type === "submit") ||
+  (el instanceof HTMLInputElement &&
+    (el.type === "submit" || el.type === "image"))
+
 // Enter on a checkbox, switch or radio submits its form, like it does on a
 // native one: it clicks the default button, or submits a form without one
 // when nothing else claims Enter.
@@ -183,24 +199,63 @@ function submitImplicitly(form: HTMLFormElement | null | undefined) {
     return
   }
   const elements = Array.from(form.elements)
-  const button = elements.find(
-    (el) =>
-      (el instanceof HTMLButtonElement && el.type === "submit") ||
-      (el instanceof HTMLInputElement &&
-        (el.type === "submit" || el.type === "image"))
-  ) as HTMLButtonElement | HTMLInputElement | undefined
+  const button = elements.find(isSubmitButton) as
+    HTMLButtonElement | HTMLInputElement | undefined
   if (button) {
     if (!button.disabled) {
       button.click()
     }
     return
   }
-  const blocking = elements.filter(
-    (el) =>
-      el instanceof HTMLInputElement && blocksImplicitSubmission.has(el.type)
-  )
-  if (blocking.length <= 1) {
+  if (elements.filter(blocksSubmission).length <= 1) {
     form.requestSubmit()
+  }
+}
+
+// Enter in a form's one text field submits it. The browser counts each part
+// as a field too, so with parts in the form and no submit button, it won't.
+function submitPastParts(event: KeyboardEvent) {
+  const field = event.target
+  if (
+    event.key !== "Enter" ||
+    event.defaultPrevented ||
+    event.isComposing ||
+    !(field instanceof HTMLInputElement) ||
+    !field.form ||
+    !blocksSubmission(field)
+  ) {
+    return
+  }
+  const elements = Array.from(field.form.elements)
+  if (
+    elements.some((el) => fieldParts.has(el)) &&
+    !elements.some(isSubmitButton) &&
+    elements.filter(blocksSubmission).length === 1
+  ) {
+    event.preventDefault()
+    field.form.requestSubmit()
+  }
+}
+
+// Marks a text input as a part of one field, which Enter in another field
+// doesn't count. Returns a cleanup.
+function bindFieldPart(input: HTMLInputElement) {
+  const doc = input.ownerDocument
+  const count = partsListening.get(doc) ?? 0
+  if (!count) {
+    doc.addEventListener("keydown", submitPastParts)
+  }
+  partsListening.set(doc, count + 1)
+  fieldParts.add(input)
+  return () => {
+    fieldParts.delete(input)
+    const left = partsListening.get(doc)! - 1
+    if (left) {
+      partsListening.set(doc, left)
+    } else {
+      partsListening.delete(doc)
+      doc.removeEventListener("keydown", submitPastParts)
+    }
   }
 }
 
@@ -555,6 +610,7 @@ export {
   associate,
   type Association,
   attachFormInternals,
+  bindFieldPart,
   bindHiddenInput,
   bindInternals,
   bindValueInput,

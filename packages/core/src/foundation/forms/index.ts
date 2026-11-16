@@ -16,6 +16,7 @@ export {
 export { activateControl, findControl } from "./control"
 export {
   associate,
+  bindFieldPart,
   bindHiddenInput,
   bindInternals,
   bindValueInput,

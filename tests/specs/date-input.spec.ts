@@ -260,6 +260,30 @@ test("Enter submits the form with what was typed", async ({ page, open }) => {
   )
 })
 
+// Browsers don't count a native date or time input as a field that blocks
+// implicit submission, so Enter in a form's one text field still submits it.
+test("Enter in the form's one text field submits it, as with a native date and time", async ({
+  page,
+  open,
+}) => {
+  await open("date-input", { date: "2026-11-02", time: "09:30" })
+  await page.locator("form").evaluate((form) => {
+    form.querySelector("[type=submit]")!.setAttribute("type", "button")
+    const input = document.createElement("input")
+    input.name = "q"
+    input.setAttribute("aria-label", "Query")
+    form.prepend(input)
+  })
+  await page.getByRole("textbox", { name: "Query" }).press("Enter")
+  await expect(submitted(page)).toHaveText(
+    JSON.stringify([
+      ["q", ""],
+      ["start", "2026-11-02"],
+      ["time", "09:30"],
+    ])
+  )
+})
+
 test("resetting the form brings back the default date", async ({
   page,
   open,
