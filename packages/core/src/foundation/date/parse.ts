@@ -563,6 +563,16 @@ function monthLookup(locale: string | undefined) {
       }
     }
   }
+  // Hawaiian writes a short date's month in Roman numerals: "5/i/26".
+  const short = dateFormatter(locale, { dateStyle: "short" })
+  for (let index = 0; index < 12; index++) {
+    const name = short
+      .formatToParts(Date.UTC(2026, index, 16))
+      .find((part) => part.type === "month")?.value
+    if (name && !/\p{Nd}/u.test(name)) {
+      add(name, index + 1)
+    }
+  }
   return lookup
 }
 

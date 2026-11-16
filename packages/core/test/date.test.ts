@@ -426,6 +426,14 @@ describe("typing a date", () => {
     expect(parseDate("5 ژانویهٔ 2026", "fa-IR")).toBe("2026-01-05")
   })
 
+  test("reads a short date's month written as a word, as Hawaiian writes Roman numerals", () => {
+    const reference = { referenceDate: "2026-01-01" } as const
+    expect(parseDate("5/i/26", "haw", reference)).toBe("2026-01-05")
+    expect(parseDate("31/xii/2026", "haw")).toBe("2026-12-31")
+    expect(parseDate("16/x", "haw", reference)).toBe("2026-10-16")
+    expect(parseDate("5/v/26", "en-US", reference)).toBeUndefined()
+  })
+
   test("reads a month written with its number, and the words around the numbers", () => {
     expect(parseDate("16 tháng 10, 2026", "vi-VN")).toBe("2026-10-16")
     expect(parseDate("2026 оны 10-р сарын 16", "mn-MN")).toBe("2026-10-16")
