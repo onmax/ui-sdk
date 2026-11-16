@@ -2,7 +2,7 @@
 // order, separators and month names all come from `Intl`, so "16.10.2026" is
 // October 16 in German, "10/16/2026" is in American English, and "16 oct 2026"
 // works in French and English alike.
-import { dateFormatter, monthNames, weekdayNames } from "./format"
+import { dateFormatter, formatDate, monthNames, weekdayNames } from "./format"
 import { dateParts, isoDate, type ISODate } from "./plain-date"
 
 /**
@@ -101,8 +101,9 @@ function fieldNames(locale: string | undefined) {
  * The ISO date in text someone typed, or undefined when it isn't a real date.
  * It reads the locale's order with any separator ("16.10.2026", "16/10/26",
  * "16 10 2026"), digits alone ("16102026"), month names ("16 Oct 2026",
- * "October 16"), the locale's own digits, and ISO dates. A missing year is
- * `referenceDate`'s, today's by default. Years read in the locale's calendar,
+ * "October 16"), the locale's medium, long and full dates as `Intl` writes
+ * them, weekday included, the locale's own digits, and ISO dates. A missing
+ * year is `referenceDate`'s, today's by default. Years read in the locale's calendar,
  * like Buddhist years in Thai. A two-digit year lands in the hundred years that
  * end 20 years after the reference year: "26" is 2026 and "70" is 1970 in 2026.
  * @stable
@@ -122,10 +123,14 @@ function parseDate(
   if (dateParts(normalized)) {
     return normalized
   }
-  const { fields } = datePattern(locale)
   const referenceYear =
     Number((options.referenceDate ?? "").slice(0, 4)) ||
     new Date().getFullYear()
+  const written = parseWrittenDate(normalized, locale, referenceYear)
+  if (written) {
+    return written
+  }
+  const { fields } = datePattern(locale)
 
   let namedMonth: number | undefined
   const numbers: string[] = []
@@ -207,6 +212,124 @@ function namedMonthOrder(locale: string | undefined) {
   }
   return order
 }
+
+const writtenStyles = ["full", "long", "medium"] as const
+
+type WrittenDate = {
+  dateStyle: (typeof writtenStyles)[number]
+  pattern: RegExp
+  fields: DateField[]
+  months: Map<string, number>
+}
+
+const writtenDates = new Map<string, WrittenDate[]>()
+
+// The text as a written date is compared: without spaces, joiners or case,
+// with Latin digits, and with the apostrophe a keyboard types.
+function compact(text: string, locale: string | undefined) {
+  return toLatinDigits(text.replace(directionMarks, ""), locale)
+    .replace(/[\s\u200c\u200d]/gu, "")
+    .replace(/[’ʼ׳]/gu, "'")
+    .toLocaleLowerCase(locale)
+}
+
+// A date in the locale's medium, long or full form, read part by part as
+// `Intl` writes it, so names with spaces, dots or a prefix read whole, like
+// Irish "Deireadh Fómhair" or Hebrew "באוקטובר".
+function parseWrittenDate(
+  text: string,
+  locale: string | undefined,
+  referenceYear: number
+) {
+  const typed = compact(text, locale)
+  for (const { dateStyle, pattern, fields, months } of writtenDatesOf(locale)) {
+    const match = pattern.exec(typed)
+    if (!match) {
+      continue
+    }
+    const values: Partial<Record<DateField, string>> = {}
+    fields.forEach((field, index) => (values[field] = match[index + 1]))
+    const offset = yearOffset(locale)
+    const date = isoDate(
+      fullYear(values.year ?? "", referenceYear + offset) - offset,
+      months.get(values.month ?? "") ?? 0,
+      Number(values.day)
+    )
+    // Only a date that writes back as the same text, so a wrong weekday or
+    // an era's years don't read as some other date.
+    if (
+      date &&
+      compact(formatDate(date, locale, { dateStyle }), locale) === typed
+    ) {
+      return date
+    }
+  }
+  return undefined
+}
+
+function writtenDatesOf(locale: string | undefined) {
+  const key = locale ?? ""
+  let dates = writtenDates.get(key)
+  if (!dates) {
+    writtenDates.set(
+      key,
+      (dates = writtenStyles.map((dateStyle) =>
+        readWrittenDate(locale, dateStyle)
+      ))
+    )
+  }
+  return dates
+}
+
+function readWrittenDate(
+  locale: string | undefined,
+  dateStyle: WrittenDate["dateStyle"]
+) {
+  const formatter = dateFormatter(locale, { dateStyle })
+  const partOf = (type: string, month: number, day: number) =>
+    formatter
+      .formatToParts(Date.UTC(2026, month, day))
+      .find((part) => part.type === type)?.value
+  const months = new Map<string, number>()
+  for (let month = 0; month < 12; month++) {
+    const name = partOf("month", month, 16)
+    if (name) {
+      months.set(compact(name, locale), month + 1)
+    }
+  }
+  const weekdays = new Set<string>()
+  for (let day = 11; day < 18; day++) {
+    const name = partOf("weekday", 9, day)
+    if (name) {
+      weekdays.add(compact(name, locale))
+    }
+  }
+  const fields: DateField[] = []
+  const source = formatter
+    .formatToParts(Date.UTC(2026, 9, 16))
+    .map((part) => {
+      if (part.type === "day" || part.type === "year") {
+        fields.push(part.type)
+        return "(\\d+)"
+      }
+      if (part.type === "month") {
+        fields.push("month")
+        return `(${anyOf(months.keys())})`
+      }
+      if (part.type === "weekday") {
+        return `(?:${anyOf(weekdays)})`
+      }
+      return escapeRegExp(compact(part.value, locale))
+    })
+    .join("")
+  return { dateStyle, pattern: new RegExp(`^${source}$`, "u"), fields, months }
+}
+
+const anyOf = (names: Iterable<string>) =>
+  [...names].map(escapeRegExp).join("|")
+
+const escapeRegExp = (text: string) =>
+  text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 
 const yearOffsets = new Map<string, number>()
 

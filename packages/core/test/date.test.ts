@@ -394,6 +394,39 @@ describe("typing a date", () => {
     expect(parseDate("১৬ অক্টোবর, ২০২৬", "bn-BD")).toBe("2026-10-16")
   })
 
+  test("reads month names with spaces, dots, joiners or a prefix, as the locale writes them", () => {
+    expect(parseDate("16 Deireadh Fómhair 2026", "ga-IE")).toBe("2026-10-16")
+    expect(parseDate("16 ต.ค. 2569", "th-TH")).toBe("2026-10-16")
+    expect(parseDate("16 ຕ.ລ. 2026", "lo-LA")).toBe("2026-10-16")
+    expect(parseDate("2026 ഒക്‌ടോബർ 16", "ml-IN")).toBe("2026-10-16")
+    expect(parseDate("2026 ഒക്ടോബർ 16", "ml-IN")).toBe("2026-10-16")
+    expect(parseDate("16 באוקטובר 2026", "he-IL")).toBe("2026-10-16")
+    expect(parseDate("16 d’octubre del 2026", "ca-ES")).toBe("2026-10-16")
+    expect(parseDate("16 d'octubre del 2026", "ca-ES")).toBe("2026-10-16")
+    expect(parseDate("5 ژانویهٔ 2026", "fa-IR")).toBe("2026-01-05")
+  })
+
+  test("reads a month written with its number, and the words around the numbers", () => {
+    expect(parseDate("16 tháng 10, 2026", "vi-VN")).toBe("2026-10-16")
+    expect(parseDate("2026 оны 10-р сарын 16", "mn-MN")).toBe("2026-10-16")
+    expect(parseDate("2026(e)ko urriaren 16(a)", "eu-ES")).toBe("2026-10-16")
+    expect(parseDate("民國115年10月16日", "zh-TW-u-ca-roc")).toBe("2026-10-16")
+  })
+
+  test("reads the locale's full date, with its weekday", () => {
+    expect(parseDate("fredag den 16. oktober 2026", "da-DK")).toBe("2026-10-16")
+    expect(parseDate("sexta-feira, 16 de outubro de 2026", "pt-BR")).toBe(
+      "2026-10-16"
+    )
+    expect(parseDate("e premte, 16 tetor 2026", "sq-AL")).toBe("2026-10-16")
+    expect(parseDate("2026年10月16日金曜日", "ja-JP")).toBe("2026-10-16")
+    expect(parseDate("2026年10月16日星期五", "zh-CN")).toBe("2026-10-16")
+  })
+
+  test("doesn't read a Japanese era's year as a Gregorian one", () => {
+    expect(parseDate("令和8年10月16日", "ja-JP-u-ca-japanese")).toBeUndefined()
+  })
+
   test("reads a pasted label with its weekday", () => {
     expect(parseDate("Friday, October 16, 2026", "en-US")).toBe("2026-10-16")
   })
