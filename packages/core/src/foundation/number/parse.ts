@@ -173,9 +173,12 @@ function parseNumber(
   format?: Intl.NumberFormatOptions
 ) {
   const symbols = symbolsOf(locale, format ?? {})
-  const word = symbols.words.get(wordKey(text))
+  const [, sign, key] = /^([-+]?)(.*)$/su.exec(
+    wordKey(text).replace(minusSigns, "-").replace(plusSigns, "+")
+  )!
+  const word = symbols.words.get(key!)
   if (word !== undefined) {
-    return word
+    return sign === "-" ? -word : word
   }
   const normalized = normalize(text, symbols)
   if (!complete.test(normalized)) {

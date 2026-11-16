@@ -80,7 +80,13 @@ function formatNumber(
   if (typeof format === "function") {
     return format(value)
   }
-  return numberFormatter(locale, format).format(value)
+  const formatter = numberFormatter(locale, format)
+  const text = formatter.format(value)
+  return /\p{Nd}/u.test(text)
+    ? text
+    : signedParts(formatter, value)
+        .map((part) => part.value)
+        .join("")
 }
 
 /**
@@ -128,7 +134,25 @@ function formatNumberToParts(
       { type: "literal", value: format(value) },
     ] as Intl.NumberFormatPart[]
   }
-  return numberFormatter(locale, format).formatToParts(value)
+  return signedParts(numberFormatter(locale, format), value)
+}
+
+// Arabic and Hebrew write one or two of some units as a word alone, like
+// "يومان" for 2 days, and `Intl` drops its sign there, so -2 days would show
+// as 2. The sign goes back in front, as the locale writes it for other numbers.
+function signedParts(formatter: Intl.NumberFormat, value: number) {
+  const parts = formatter.formatToParts(value)
+  if (value === 0 || parts.some((part) => part.type === "integer")) {
+    return parts
+  }
+  const sample = formatter.formatToParts(Math.sign(value) * 12345.6)
+  const sign = sample.findIndex(
+    (part) => part.type === "minusSign" || part.type === "plusSign"
+  )
+  return sign !== -1 &&
+    sign < sample.findIndex((part) => part.type === "integer")
+    ? [...sample.slice(0, sign + 1), ...parts]
+    : parts
 }
 
 export {

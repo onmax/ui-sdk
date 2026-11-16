@@ -114,6 +114,23 @@ describe("formatting", () => {
       "$1.235"
     )
   })
+
+  test("keeps the sign of a number written as a word alone", () => {
+    const days = { style: "unit", unit: "day", unitDisplay: "long" } as const
+    expect(formatNumber(-2, "ar", days)).toBe("\u200e-يومان")
+    expect(formatNumber(-1, "ar", days)).toBe("\u200e-يوم")
+    expect(formatNumber(2, "ar", days)).toBe("يومان")
+    expect(formatNumber(-2, "he", days)).toBe("\u200e-יומיים")
+    expect(formatNumber(2, "ar", { ...days, signDisplay: "always" })).toBe(
+      "\u200e+يومان"
+    )
+    expect(formatNumber(-2, "ar", { ...days, signDisplay: "never" })).toBe(
+      "يومان"
+    )
+    expect(
+      formatNumberToParts(-2, "ar", days).map((part) => part.type)
+    ).toEqual(["literal", "minusSign", "unit"])
+  })
 })
 
 describe("parsing", () => {
@@ -210,6 +227,14 @@ describe("parsing", () => {
     expect(parseNumber("יומיים", "he", unit("day"))).toBe(2)
     expect(parseNumber("שתי דקות", "he", unit("minute"))).toBe(2)
     expect(isPartialNumber("יומיים", "he", unit("day"))).toBe(true)
+  })
+
+  test("reads the sign of a number written as a word alone", () => {
+    const days = { style: "unit", unit: "day", unitDisplay: "long" } as const
+    expect(parseNumber(formatNumber(-2, "ar", days), "ar", days)).toBe(-2)
+    expect(parseNumber("-يوم", "ar", days)).toBe(-1)
+    expect(parseNumber(formatNumber(-2, "he", days), "he", days)).toBe(-2)
+    expect(isPartialNumber(formatNumber(-2, "ar", days), "ar", days)).toBe(true)
   })
 
   test("accepts what could still become a number", () => {
