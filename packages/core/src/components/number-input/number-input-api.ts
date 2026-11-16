@@ -115,6 +115,14 @@ const display = (
 ) =>
   formatNumber(value, localeOf(state), displayOptions(state.format, state.step))
 
+// Text reads with the options it shows with: a step's decimals bring forms of
+// a unit or currency name the format alone never writes, like "1,5 иены".
+const parseText = (
+  text: string,
+  state: Pick<State, "locale" | "pageLocale" | "format" | "step">
+) =>
+  parseNumber(text, localeOf(state), displayOptions(state.format, state.step))
+
 const isLocked = (state: State) => isDisabled(state) || state.readOnly
 
 // The keyboard a phone shows. iPhones have no minus key on their number pads,
@@ -192,7 +200,7 @@ function numberInputApiBody(
     if (state.text.trim() === "") {
       return null
     }
-    return parseNumber(state.text, localeOf(state), state.format) ?? state.value
+    return parseText(state.text, state) ?? state.value
   }
 
   // The text shows the value, formatted.
@@ -323,9 +331,12 @@ function numberInputApiBody(
         const end = el.selectionEnd ?? start
         const next = el.value.slice(0, start) + event.data + el.value.slice(end)
         if (
-          !isPartialNumber(next, localeOf(state), state.format, {
-            allowNegative: state.min < 0,
-          })
+          !isPartialNumber(
+            next,
+            localeOf(state),
+            displayOptions(state.format, state.step),
+            { allowNegative: state.min < 0 }
+          )
         ) {
           event.preventDefault()
         }
@@ -339,7 +350,7 @@ function numberInputApiBody(
         if (text.trim() === "") {
           return setValue(null, "input-change", event)
         }
-        const parsed = parseNumber(text, localeOf(state), state.format)
+        const parsed = parseText(text, state)
         if (parsed !== null && parsed >= state.min && parsed <= state.max) {
           setValue(parsed, "input-change", event)
         }
@@ -360,9 +371,7 @@ function numberInputApiBody(
         // the value just asked for.
         let asked = state.value
         const isEmpty = state.text.trim() === ""
-        const parsed = isEmpty
-          ? null
-          : parseNumber(state.text, localeOf(state), state.format)
+        const parsed = isEmpty ? null : parseText(state.text, state)
         const next =
           parsed !== null
             ? snapToStep(clamp(parsed, state.min, state.max), rangeOf(state))
@@ -580,10 +589,7 @@ function numberInputApiBody(
       return
     }
     const next = { ...state, ...synced }
-    const typed =
-      next.text.trim() === ""
-        ? null
-        : parseNumber(next.text, localeOf(next), next.format)
+    const typed = next.text.trim() === "" ? null : parseText(next.text, next)
     if (!sameValue(typed, next.value)) {
       return { text: display(next.value, next) }
     }
@@ -611,10 +617,7 @@ function numberInputApiBody(
       return
     }
     shown = state.value
-    const typed =
-      state.text.trim() === ""
-        ? null
-        : parseNumber(state.text, localeOf(state), state.format)
+    const typed = state.text.trim() === "" ? null : parseText(state.text, state)
     if (!sameValue(typed, state.value)) {
       store.set({ text: display(state.value, state) })
     }

@@ -173,6 +173,22 @@ describe("number input", () => {
     expect(attrs(instance.part("control")).value).toBe("3.75%")
   })
 
+  test("reads the text it shows when the step gives a currency name decimals", () => {
+    const instance = numberInput({
+      id: "n",
+      defaultValue: 1.5,
+      step: 0.01,
+      locale: "ru-RU",
+      format: { style: "currency", currency: "JPY", currencyDisplay: "name" },
+    })
+    const shown = attrs(instance.part("control")).value
+    expect(shown).toBe("1,5 японской иены")
+    instance.api.internal.type("2,25 японской иены")
+    expect(instance.get().value).toBe(2.25)
+    instance.api.internal.commitText()
+    expect(attrs(instance.part("control")).value).toBe("2,25 японской иены")
+  })
+
   test("steps from empty start at 0, within the bounds", () => {
     const instance = numberInput({ id: "n", defaultValue: null, min: 5 })
     instance.api.increment()
