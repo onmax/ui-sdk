@@ -2,7 +2,7 @@
 // Plain `v-model` binds a component's main value, the way Vue developers
 // expect, next to `v-model:<key>`.
 import { createApp, defineComponent, h, nextTick, ref } from "vue"
-import { expect, test } from "vitest"
+import { expect, test, vi } from "vitest"
 import { Checkbox } from "../src/checkbox"
 import { Field, FieldLabel } from "../src/field"
 import { Input } from "../src/input"
@@ -135,6 +135,39 @@ test("v-model.trim keeps the spaces being typed", async () => {
   expect(field.value).toBe("hello ")
   unmount()
 })
+
+test.each([
+  ["value", "valueModifiers"],
+  ["modelValue", "modelModifiers"],
+])(
+  "an input's %s takes the number v-model.number gives it",
+  async (key, modifiers) => {
+    const amount = ref(5)
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    const { el, unmount } = mount(() =>
+      h(Input, {
+        [key]: amount.value,
+        [modifiers]: { number: true },
+        [`onUpdate:${key}`]: (next: number) => (amount.value = next),
+      })
+    )
+    const field = el.querySelector("input")!
+    expect(field.value).toBe("5")
+    for (const text of ["1", "12", "12."]) {
+      field.value = text
+      field.dispatchEvent(new Event("input", { bubbles: true }))
+      await new Promise((resolve) => setTimeout(resolve))
+    }
+    expect(amount.value).toBe(12)
+    expect(field.value).toBe("12.")
+    amount.value = 3
+    await nextTick()
+    expect(field.value).toBe("3")
+    expect(warn).not.toHaveBeenCalled()
+    warn.mockRestore()
+    unmount()
+  }
+)
 
 test("a value of null stays controlled, like a navigation menu with nothing open", async () => {
   const { el, unmount } = mount(() =>

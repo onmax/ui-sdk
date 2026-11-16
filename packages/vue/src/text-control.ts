@@ -7,9 +7,10 @@ import { getCurrentInstance, nextTick, type PropType } from "vue"
 import type { useFieldControl } from "./field-context"
 import { optionalBoolean, orModel } from "./use-primitive"
 
+// A number is what `v-model.number` gives back, so it's a valid value too.
 const textProps = {
-  value: { type: String, default: undefined },
-  modelValue: { type: String, default: undefined },
+  value: { type: [String, Number], default: undefined },
+  modelValue: { type: [String, Number], default: undefined },
   defaultValue: { type: String, default: undefined },
   disabled: optionalBoolean,
   readOnly: optionalBoolean,
@@ -28,8 +29,8 @@ const textEmits = {
 }
 
 type TextProps = {
-  value?: string
-  modelValue?: string
+  value?: string | number
+  modelValue?: string | number
   defaultValue?: string
   disabled?: boolean
   readOnly?: boolean
@@ -56,6 +57,11 @@ function received(value: string, modifiers?: Record<string, boolean>) {
   return modifiers?.trim ? value.trim() : value
 }
 
+function controlledText(props: TextProps) {
+  const value = orModel(props.value, props.modelValue)
+  return value === undefined ? undefined : String(value)
+}
+
 // Options for a text field's primitive. The change event runs first, so
 // canceling it also keeps v-model as it was.
 function textOptions(props: TextProps, emit: Emit) {
@@ -74,7 +80,7 @@ function textOptions(props: TextProps, emit: Emit) {
     })
   }
   return () => ({
-    value: orModel(props.value, props.modelValue),
+    value: controlledText(props),
     defaultValue: props.defaultValue,
     controller: props.controller,
     debug: props.debug,
@@ -113,7 +119,7 @@ function elementProps(
   attrs: Record<string, unknown>,
   tag: "input" | "textarea"
 ) {
-  const controlled = orModel(props.value, props.modelValue)
+  const controlled = controlledText(props)
   const value =
     controlled !== undefined
       ? { value: controlled }
