@@ -120,7 +120,9 @@ function parseDate(
   if (!normalized) {
     return undefined
   }
-  if (dateParts(normalized)) {
+  const { fields } = datePattern(locale)
+  // Kyrgyz writes January 5 as "2026-05-01", so there it isn't an ISO date.
+  if (dateParts(normalized) && !(fields[0] === "year" && fields[1] === "day")) {
     return normalized
   }
   const referenceYear =
@@ -130,7 +132,6 @@ function parseDate(
   if (written) {
     return written
   }
-  const { fields } = datePattern(locale)
 
   let namedMonth: number | undefined
   const numbers: string[] = []

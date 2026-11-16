@@ -332,6 +332,16 @@ describe("typing a date", () => {
     expect(parseDate(" 2026-10-16 ", "de")).toBe("2026-10-16")
   })
 
+  test("reads the locale's own order before ISO when it writes the day before the month", () => {
+    const shown = formatDate("2026-01-05", "ky-KG", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    })
+    expect(shown).toBe("2026-05-01")
+    expect(parseDate(shown, "ky-KG")).toBe("2026-01-05")
+  })
+
   test("reads digits alone, as a phone's number pad types them", () => {
     expect(parseDate("10162026", "en-US")).toBe("2026-10-16")
     expect(parseDate("16102026", "de")).toBe("2026-10-16")
