@@ -215,6 +215,20 @@ function insideTreeAt(layer: Layer, hops: Node[], event?: Event): boolean {
 
 function listen(doc: Document, win: Window) {
   let swallowClick = false
+  let offLeftover: (() => void) | undefined
+  const forgetClick = () => {
+    swallowClick = false
+    offLeftover?.()
+    offLeftover = undefined
+  }
+  // A release's click comes in the release's task, or never when the press's
+  // target is gone, like a backdrop that closed. A later click, like the one
+  // Space makes on the trigger, isn't the press's.
+  const forgetAfterRelease = () => {
+    if (swallowClick) {
+      win.setTimeout(forgetClick)
+    }
+  }
   let touch: { x: number; y: number; target: Node } | undefined
 
   let pending:
@@ -311,6 +325,7 @@ function listen(doc: Document, win: Window) {
     win,
     "pointerup",
     (event) => {
+      forgetAfterRelease()
       const press = pending
       pending = undefined
       if (!press || !press.layer.active()) {
@@ -386,10 +401,14 @@ function listen(doc: Document, win: Window) {
       return offClick()
     }
     // The press that closed the last layer still owes its click, which would
-    // reach the page. It's swallowed when it comes, and forgotten at the next press.
-    const off = () => (offClick(), offNext(), offSwallowed())
-    const offNext = on(win, "pointerdown", off, { capture: true })
-    const offSwallowed = on(win, "click", off, { capture: true })
+    // reach the page. It's swallowed when it comes, and forgotten at the next
+    // press or after the release.
+    const offNext = on(win, "pointerdown", forgetClick, { capture: true })
+    const offSwallowed = on(win, "click", forgetClick, { capture: true })
+    const offRelease = on(win, "pointerup", forgetAfterRelease, {
+      capture: true,
+    })
+    offLeftover = () => (offClick(), offNext(), offSwallowed(), offRelease())
   }
 }
 
