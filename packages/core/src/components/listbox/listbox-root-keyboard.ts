@@ -8,6 +8,7 @@ import { sourceOf } from "../../foundation/kernel/modality"
 import { isRTL } from "../../foundation/platform/env"
 import { isTypeaheadKey } from "../../foundation/text/typeahead"
 import { type Listbox } from "../../foundation/lists/listbox"
+import { pageStep } from "../../foundation/lists/listbox-keyboard"
 import { isDisabled } from "../../foundation/lists/listbox-parts"
 import type { ListboxValueChangeReason } from "./listbox-root"
 import type { ListboxStore } from "./listbox-root-api"
@@ -153,7 +154,8 @@ function createListboxKeyboard({
       event.preventDefault()
       return toggleAll({ reason: "list-navigation", event })
     }
-    const step = stepFor(event.key, state.orientation, isRTL(root))
+    const step =
+      stepFor(event.key, state.orientation, isRTL(root)) ?? pageStep(event.key)
     if (step !== undefined) {
       return navigate(event, step, current)
     }

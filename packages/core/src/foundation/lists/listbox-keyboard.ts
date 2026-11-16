@@ -7,6 +7,15 @@ import { type Listbox } from "./listbox"
 // How far PageUp and PageDown move the highlight.
 const PAGE = 10
 
+function pageStep(key: string) {
+  if (key === "PageDown") {
+    return PAGE
+  }
+  if (key === "PageUp") {
+    return -PAGE
+  }
+}
+
 // The step a key takes through a list: 1 or -1 for the arrows, and for Ctrl+N
 // and Ctrl+P on Apple platforms, as in their text fields; the first or last
 // item for Cmd with an arrow; a page for PageUp and PageDown. Undefined for any
@@ -21,11 +30,9 @@ function listStep(event: KeyboardEvent, { apple }: { apple: boolean }) {
   if (key === "ArrowUp") {
     return event.metaKey ? "first" : -1
   }
-  if (key === "PageDown") {
-    return PAGE
-  }
-  if (key === "PageUp") {
-    return -PAGE
+  const page = pageStep(key)
+  if (page !== undefined) {
+    return page
   }
   const emacs =
     apple && event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey
@@ -82,4 +89,4 @@ function listKeyDown(
   }
 }
 
-export { listKeyDown, listStep }
+export { listKeyDown, listStep, pageStep }

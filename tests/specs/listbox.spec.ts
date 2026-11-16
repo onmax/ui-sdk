@@ -162,6 +162,22 @@ test.describe("single selection", () => {
     await expect(option(page, "Tomato")).toBeFocused()
   })
 
+  test("PageDown and PageUp move a page and stop at the ends", async ({
+    page,
+    open,
+  }) => {
+    await open("listbox", { activation: "manual" })
+    await option(page, "Basil").focus()
+    await page.keyboard.press("PageDown")
+    await expect(option(page, "Tomato")).toBeFocused()
+    await page.keyboard.press("PageDown")
+    await expect(option(page, "Tomato")).toBeFocused()
+    await page.keyboard.press("PageUp")
+    await expect(option(page, "Basil")).toBeFocused()
+    await page.keyboard.press("PageUp")
+    await expect(option(page, "Basil")).toBeFocused()
+  })
+
   test("a press selects the option", async ({ page, open }) => {
     await open("listbox")
     await option(page, "Pepper").click()

@@ -102,6 +102,8 @@ const listboxSlots = (slot: SlotFactory<ListboxStore, ListboxApi>) => ({
         : ["ArrowUp", "ArrowDown"]),
       "Home",
       "End",
+      "PageUp",
+      "PageDown",
       "Enter",
       " ",
       "typeahead",
