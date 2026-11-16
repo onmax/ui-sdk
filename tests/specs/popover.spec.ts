@@ -132,6 +132,22 @@ test.describe("focus", () => {
     await expect(page.getByRole("button", { name: "After" })).toBeFocused()
   })
 
+  test("Tab from the last element moves focus to a button in a shadow root after the trigger", async ({
+    page,
+    tab,
+    fixtureOptions,
+  }) => {
+    test.skip(
+      isSheet(fixtureOptions),
+      "A sheet is modal by default, so focus and presses stay in it."
+    )
+    await addShadowButton(page.getByRole("button", { name: "After" }))
+    await openWithKeyboard(page)
+    await page.getByRole("button", { name: "Close" }).focus()
+    await tab()
+    await expect(page.getByRole("button", { name: "Shadow" })).toBeFocused()
+  })
+
   test("focus leaving the popover closes it", async ({
     page,
     tab,

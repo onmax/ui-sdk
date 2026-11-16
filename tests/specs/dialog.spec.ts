@@ -103,6 +103,29 @@ test.describe("focus", () => {
     await expect(field(page)).toBeFocused()
   })
 
+  test("opening moves focus to a first element in a shadow root", async ({
+    page,
+  }) => {
+    await defineElement(page, "x-start", `<button type="button">Start</button>`)
+    // Adds the element to the dialog, or as it renders, before focus moves in.
+    await page.evaluate(() => {
+      const add = () => {
+        const dialog = document.querySelector(".dialog")
+        if (dialog && !dialog.querySelector("x-start")) {
+          dialog.prepend(document.createElement("x-start"))
+        }
+      }
+      add()
+      new MutationObserver(add).observe(document.body, {
+        childList: true,
+        subtree: true,
+      })
+    })
+    await trigger(page).focus()
+    await page.keyboard.press("Enter")
+    await expect(page.getByRole("button", { name: "Start" })).toBeFocused()
+  })
+
   test("each time focus moves in, the dialog is named by its title and described by its description", async ({
     page,
   }) => {

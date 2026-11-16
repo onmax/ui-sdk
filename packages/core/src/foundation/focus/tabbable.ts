@@ -1,5 +1,3 @@
-import { isAfter } from "../kernel/order"
-
 const candidates = [
   "a[href]",
   "area[href]",
@@ -62,26 +60,43 @@ function tabbables(root: ParentNode) {
   return Array.from(root.querySelectorAll(candidates)).filter(isTabbable)
 }
 
-// `tabbables` with each open shadow root's stops at its host's place, where
-// Tab visits them.
-function composedTabbables(root: Element) {
-  const stops: HTMLElement[] = []
-  const visit = (scope: Element | ShadowRoot) => {
+// Each element under `root`, and each open shadow root's at its host's place,
+// where Tab visits them, until `visit` returns true. `skip` is left out.
+function walkComposed(
+  root: Element,
+  visit: (el: Element) => boolean | void,
+  skip?: Element
+) {
+  const filter = (node: Node) =>
+    node === skip ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT
+  const walk = (scope: Element | ShadowRoot) => {
     const walker = root.ownerDocument.createTreeWalker(
       scope,
-      NodeFilter.SHOW_ELEMENT
+      NodeFilter.SHOW_ELEMENT,
+      filter
     )
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
       const el = node as Element
-      if (el.matches(candidates) && isTabbable(el)) {
-        stops.push(el)
-      }
-      if (el.shadowRoot) {
-        visit(el.shadowRoot)
+      if (visit(el) || (el.shadowRoot && walk(el.shadowRoot))) {
+        return true
       }
     }
+    return false
   }
-  visit(root)
+  walk(root)
+}
+
+const isStop = (el: Element): el is HTMLElement =>
+  el.matches(candidates) && isTabbable(el)
+
+// `tabbables` with each open shadow root's stops at its host's place.
+function composedTabbables(root: Element) {
+  const stops: HTMLElement[] = []
+  walkComposed(root, (el) => {
+    if (isStop(el)) {
+      stops.push(el)
+    }
+  })
   return stops
 }
 
@@ -106,13 +121,24 @@ function positiveTabStops(stops: HTMLElement[], root: Element) {
     .sort((a, b) => a.tabIndex - b.tabIndex)
 }
 
-// The first tabbable element after `node` in the document, skipping anything
-// inside `skip`, like the popup that is handing focus back.
-function nextTabbable(node: Node, skip?: Element) {
-  const doc = node.ownerDocument ?? document
-  return tabbables(doc.body).find(
-    (el) => !el.contains(node) && !skip?.contains(el) && isAfter(node, el)
+// The first tabbable element after `node` in the document, in open shadow
+// roots too, skipping anything inside `skip`, like the popup that is handing
+// focus back.
+function nextTabbable(node: Element, skip?: Element) {
+  let passed = false
+  let next: HTMLElement | undefined
+  walkComposed(
+    node.ownerDocument.body,
+    (el) => {
+      if (passed && isStop(el)) {
+        next = el
+        return true
+      }
+      passed ||= el === node
+    },
+    skip
   )
+  return next
 }
 
 const focusables =
